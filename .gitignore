@@ -1,0 +1,13 @@
+# dependencies
+node_modules/
+
+# build output
+dist/
+*.tsbuildinfo
+
+# server runtime data / secrets
+server/data/
+server/.env
+
+# editor/OS
+.DS_Store
