@@ -27,7 +27,6 @@ interface ClientsState {
   saveNeedsAssessment: (id: string, data: NeedsAssessment) => Promise<void>;
   advanceClient: (id: string) => Promise<void>;
   createReport: (id: string) => Promise<Report>;
-  simulateApproval: (id: string) => Promise<void>;
   markNotificationsRead: () => void;
 }
 
@@ -36,6 +35,12 @@ let pollTimer: ReturnType<typeof setInterval> | null = null;
 const lastStage = new Map<string, Client["stage"]>();
 let notifSeq = 0;
 
+/**
+ * The only externally-arriving transition worth an agent notification is
+ * "→ submitted" — that's the client signing remotely (possibly from their
+ * own phone), which the agent wouldn't otherwise see without refreshing.
+ * Everything else in the pipeline is agent-initiated, so it doesn't need one.
+ */
 function diffNotifications(prev: Client[], next: Client[]): AppNotification[] {
   const out: AppNotification[] = [];
   const firstRun = lastStage.size === 0 && prev.length === 0;
@@ -43,12 +48,13 @@ function diffNotifications(prev: Client[], next: Client[]): AppNotification[] {
     const before = lastStage.get(c.id);
     lastStage.set(c.id, c.stage);
     if (firstRun || before === undefined || before === c.stage) continue;
+    if (c.stage !== "submitted") continue;
     const name = `${c.firstName} ${c.lastName}`;
-    if (c.stage === "authorized") {
-      out.push(mkNotif(c.id, "mislaka_approved", `התקבל מידע מהמסלקה עבור ${name}`));
-    } else if (c.stage === "submitted") {
-      out.push(mkNotif(c.id, "signature_signed", `${name} נשלח לחברת הביטוח`));
-    }
+    out.push(
+      c.submission?.status === "failed"
+        ? mkNotif(c.id, "submission_failed", `שליחה לחברת הביטוח נכשלה עבור ${name}`)
+        : mkNotif(c.id, "submission_success", `${name} נשלח בהצלחה לחברת הביטוח`),
+    );
   }
   return out;
 }
@@ -84,6 +90,8 @@ export const useClients = create<ClientsState>((set, get) => ({
       .then((h) => set({ mislakaMode: h.mislakaMode, connected: true }))
       .catch(() => set({ connected: false }));
     if (pollTimer) clearInterval(pollTimer);
+    // Still worth polling: it's how the agent sees a client's own remote
+    // signature land without needing to refresh (see diffNotifications).
     pollTimer = setInterval(() => void get().refresh(), 3500);
   },
 
@@ -124,7 +132,11 @@ export const useClients = create<ClientsState>((set, get) => ({
       clients: [client, ...s.clients.filter((c) => c.id !== client.id)],
       selectedId: client.id,
       notifications: [
-        mkNotif(client.id, "sms_sent", `נשלח SMS ל${client.firstName} ${client.lastName}`),
+        mkNotif(
+          client.id,
+          "mislaka_loaded",
+          `נתוני מסלקה נטענו עבור ${client.firstName} ${client.lastName}`,
+        ),
         ...s.notifications,
       ].slice(0, 50),
     }));
@@ -170,12 +182,6 @@ export const useClients = create<ClientsState>((set, get) => ({
       ),
     }));
     return report;
-  },
-
-  simulateApproval: async (id) => {
-    await api.simulateApproval(id);
-    // webhook is async on the server; refresh shortly after
-    setTimeout(() => void get().refresh(), 600);
   },
 
   markNotificationsRead: () =>

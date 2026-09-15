@@ -1,7 +1,7 @@
 import { useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, Link } from "react-router-dom";
 import { motion, AnimatePresence } from "motion/react";
-import { Bell, Search, Plus, ShieldCheck } from "lucide-react";
+import { Bell, Search, Plus, ShieldCheck, BarChart3 } from "lucide-react";
 import { useClients } from "@/store/useClients";
 import { Button } from "./ui/Button";
 import { timeAgo, cn } from "@/lib/utils";
@@ -105,11 +105,11 @@ export function TopBar({ onAdd }: { onAdd: () => void }) {
                         <span
                           className={cn(
                             "mt-1.5 size-2 shrink-0 rounded-full",
-                            n.kind === "mislaka_approved"
+                            n.kind === "mislaka_loaded"
                               ? "bg-emerald-400"
-                              : n.kind === "signature_signed"
+                              : n.kind === "submission_success"
                                 ? "bg-green-400"
-                                : "bg-amber-400",
+                                : "bg-red-400",
                           )}
                         />
                         <div className="min-w-0 flex-1">
@@ -129,8 +129,15 @@ export function TopBar({ onAdd }: { onAdd: () => void }) {
           </AnimatePresence>
         </div>
 
+        <Link
+          to="/performance"
+          className="inline-flex h-9 items-center gap-1.5 rounded-xl border border-line bg-surface/60 px-3 text-[13px] font-medium text-slate-700 hover:border-zinc-600"
+        >
+          <BarChart3 className="size-4" /> ביצועים
+        </Link>
+
         <Button size="sm" onClick={onAdd}>
-          <Plus className="size-4" /> נרשם חדש
+          <Plus className="size-4" /> לקוח חדש
         </Button>
       </div>
     </header>

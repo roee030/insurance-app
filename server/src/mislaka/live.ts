@@ -1,13 +1,5 @@
 import { config } from "../config.js";
-import type { PolisaSummary } from "../types.js";
-import type {
-  CreateLeadPageInput,
-  CreateLeadPageResult,
-  Manufacturer,
-  MislakaClient,
-  SendFormInput,
-  TransactionStatus,
-} from "./client.js";
+import type { Manufacturer, MislakaClient } from "./client.js";
 
 /**
  * Live client — talks to the real Nobel Digital / Swiftness endpoint.
@@ -41,75 +33,6 @@ export class LiveMislakaClient implements MislakaClient {
       throw new Error(`Mislaka ${method} ${path} → ${res.status}: ${text}`);
     }
     return (await res.json()) as T;
-  }
-
-  async createLeadPage(
-    input: CreateLeadPageInput,
-  ): Promise<CreateLeadPageResult> {
-    const res = await this.request<{ transactionId?: string; url?: string }>(
-      "POST",
-      "/leads-page/create",
-      {
-        firstName: input.firstName,
-        lastName: input.lastName,
-        personId: input.personId,
-        mobile: input.mobile,
-        email: input.email,
-        send9100Process: input.send9100Process ?? true,
-        sendHarbProcess: input.sendHarbProcess ?? false,
-        sendPolisotProcess: input.sendPolisotProcess ?? false,
-        inform: input.inform ?? true,
-        webhookUrl: input.webhookUrl,
-        senderId: input.senderId ?? config.mislaka.senderId,
-      },
-    );
-    return {
-      transactionId: res.transactionId ?? crypto.randomUUID(),
-      leadPageUrl: res.url,
-    };
-  }
-
-  async sendForm(input: SendFormInput): Promise<{ formId: string }> {
-    return this.request("POST", "/forms", {
-      sender_id: input.senderId,
-      type: input.type,
-      first_name: input.firstName,
-      last_name: input.lastName,
-      person_id_number: input.personId,
-      mobile: input.mobile,
-      email: input.email,
-      send_type: input.sendType,
-      send_9100_when_signed: input.send9100WhenSigned ?? true,
-    });
-  }
-
-  async getTransaction(transactionId: string): Promise<TransactionStatus> {
-    const r = await this.request<{
-      transaction_id: string;
-      mislaka_number?: string;
-      status: string;
-      action_code: string;
-      person_id_number: string;
-    }>("GET", `/transaction/${transactionId}`);
-    return {
-      transactionId: r.transaction_id,
-      mislakaNumber: r.mislaka_number,
-      status: r.status,
-      actionCode: r.action_code,
-      personId: r.person_id_number,
-    };
-  }
-
-  async getPolisot(transactionId: string): Promise<PolisaSummary[]> {
-    const r = await this.request<{ polisot: PolisaSummary[] }>(
-      "GET",
-      `/transaction/${transactionId}/polisot/`,
-    );
-    return r.polisot ?? [];
-  }
-
-  async getPolisotData(transactionId: string): Promise<unknown> {
-    return this.request("GET", `/transaction/${transactionId}/polisot/data`);
   }
 
   async getManufacturers(): Promise<Manufacturer[]> {

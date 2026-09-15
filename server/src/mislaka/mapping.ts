@@ -1,14 +1,5 @@
 import type { Client, StageEvent, StageId } from "../types.js";
 
-export const STAGE_ORDER: StageId[] = [
-  "lead",
-  "sms_sent",
-  "authorized",
-  "policy",
-  "signature",
-  "submitted",
-];
-
 export function stageEvent(stage: StageId, note?: string): StageEvent {
   return { id: crypto.randomUUID(), stage, at: new Date().toISOString(), note };
 }

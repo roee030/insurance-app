@@ -1,7 +1,19 @@
 # תוכנית אינטגרציית Mislaka-API — מה יש, מה חסר, מה קודם
 
 מקור: https://docs.mislaka-api.co.il/ (נקרא ואומת במלואו — Base URL
-`https://mislaka-api.co.il/api`, auth header `token`, 100 req/min).
+`https://mislaka-api.co.il/api`, auth header `token`, 100 req/min). קיבלנו
+גם Postman Collection אמיתי מהספק — קבוצת ה-endpoints שם **מצומצמת** ממה
+שהתיעוד הציבורי מפרט (אין בו למשל `leads-page/create`, `9401`, `harBituach`,
+`CarInsuranceHistory`) — כנראה משקף את מה שבפועל זמין בחשבון שלנו; הטבלאות
+למטה מסתמכות על שניהם ומציינות איפה יש פער.
+
+> **החלטת ארכיטקטורה (אחרי כתיבת הגרסה הראשונה של מסמך זה):** ויתרנו על
+> משיכה חיה מה-API לגמרי בשלב קליטת הלקוח — הסוכן **מעלה קובץ** שקיבל
+> מהמסלקה (export), והנתונים זמינים מיידית בלי המתנה ל-SMS/webhook (ראה
+> `server/src/mislaka/parseMislakaExport.ts`). זה מדייק את "עדיפות 2" למטה:
+> `leads-page/create`, `9100`, `polisot`, וה-webhook הנכנס הוסרו מהקוד
+> ואינם "בשימוש" יותר — האינטגרציה החיה היחידה שנותרה היא `manufacturers/list`.
+> "עדיפות 1" (ניוד אמיתי דרך 1700, איחוד עולמות החתימה) עדיין רלוונטית במלואה.
 
 מטרת המסמך: לרשום את **כל** ה-endpoints שהמסלקה מציעה, ולסמן לכל אחד אם
 אנחנו **כבר משתמשים**, **צריכים בקרוב**, **נחמד שיהיה**, או **לא רלוונטי**
@@ -46,16 +58,15 @@
 
 ---
 
-## 🟠 עדיפות 2 — קיים, אבל שווה לחזק
+## 🟠 עדיפות 2 — קיים בקוד, אבל לא כ"משיכה חיה" יותר
 
 | Endpoint | שיטה | סטטוס אצלנו |
 |---|---|---|
-| `POST /api/leads-page/create` | POST | ✅ בשימוש (`live.ts createLeadPage`) — שולח SMS + מפעיל 9100 |
-| `POST /api/transaction` (`type:"9100"`) | POST | ✅ מופעל דרך `send9100Process` בקריאה הקודמת |
-| `GET /api/transaction/{id}/polisot/` | GET | ✅ בשימוש (`getPolisot`) |
-| `GET /api/transaction/{id}/polisot/data` | GET | ✅ בשימוש (`getPolisotData`) — נשמר ב-`mislaka.raw` |
-| Webhook נכנס (`/api/webhooks/mislaka`) | — | ✅ בשימוש, כולל משיכה מיידית (מגבלת 7 ימים) |
-| `GET /api/manufacturers/list/` | GET | ⚠️ **הפונקציה קיימת בקוד (`getManufacturers`) אבל ה-UI לא משתמש בה** — `ProductActionsPanel`/`ProductForm` עדיין עם רשימת חברות **קשיחה** (`COMPANIES` array). **תיקון קל, שווה לעשות:** לטעון את הרשימה האמיתית מה-API בזמן ריצה. |
+| `POST /api/leads-page/create` | POST | ❌ **הוסר** — קליטת לקוח עברה להעלאת קובץ (ראה החלטת הארכיטקטורה למעלה). קוד `createLeadPage` נמחק מ-`mislaka/live.ts`/`mock.ts`. |
+| `POST /api/transaction` (`type:"9100"`) | POST | ❌ **הוסר** יחד עם ה-leads-page flow. |
+| `GET /api/transaction/{id}/polisot/` , `.../polisot/data` | GET | ❌ **הוסר** — הנתונים מגיעים מהקובץ המועלה, לא ממשיכה חיה. |
+| Webhook נכנס (`/api/webhooks/mislaka`) | — | ❌ **הוסר** — `server/src/routes/webhook.ts` נמחק לגמרי. |
+| `GET /api/manufacturers/list/` | GET | ✅ **האינטגרציה החיה היחידה שנותרה.** `getManufacturers()` ב-`mislaka/live.ts`/`mock.ts`, נחשף ב-`GET /api/manufacturers`. עדיין לא בשימוש ב-UI — `ProductActionsPanel` עדיין עם רשימת חברות **קשיחה** (`COMPANIES` array). **תיקון קל, שווה לעשות:** לטעון את הרשימה האמיתית מה-API בזמן ריצה. |
 
 ---
 

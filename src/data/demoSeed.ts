@@ -12,9 +12,10 @@ import type {
   ProductAction,
   StageEvent,
   StageId,
+  Submission,
 } from "@/domain/types";
 
-const HSTAGES: StageId[] = ["lead", "sms_sent", "authorized", "signature", "submitted"];
+const HSTAGES: StageId[] = ["authorized", "signature", "submitted"];
 
 function uid(): string {
   return crypto.randomUUID();
@@ -123,13 +124,20 @@ interface Spec {
   stage: StageId;
   ages: number[];
   productActions?: ProductAction[];
-  withMislaka?: boolean;
   na?: NeedsAssessment;
+  /** Force a failed submission (used to demo the failure/ack notification). */
+  forceFailedSubmission?: boolean;
 }
 
 function mk(now: number, s: Spec): Client {
   const h = hist(now, s.stage, s.ages);
-  const transactionId = "mock-" + uid();
+  const mislaka: MislakaResult = {
+    transactionId: "mock-" + uid(),
+    mislakaNumber: "MSL-" + s.pid.slice(0, 8),
+    actionCode: "file_upload",
+    receivedAt: h[0].at,
+    polisot: polisot(Number(s.pid.slice(-3))),
+  };
   const client: Client = {
     id: uid(),
     firstName: s.fn,
@@ -138,21 +146,10 @@ function mk(now: number, s: Spec): Client {
     mobile: s.mob,
     stage: s.stage,
     history: h,
-    transactionId,
-    leadPageUrl: "https://mock.mislaka-api.co.il/lead/" + transactionId,
+    mislaka,
     createdAt: h[0].at,
     updatedAt: h[h.length - 1].at,
   };
-  if (s.withMislaka) {
-    const mislaka: MislakaResult = {
-      transactionId,
-      mislakaNumber: "MSL-" + s.pid.slice(0, 8),
-      actionCode: "9100",
-      receivedAt: new Date(now - 10 * 3_600_000).toISOString(),
-      polisot: polisot(Number(s.pid.slice(-3))),
-    };
-    client.mislaka = mislaka;
-  }
   if (s.na) client.needsAssessment = s.na;
   if (s.productActions) client.productActions = s.productActions;
   if (s.stage === "signature") {
@@ -165,6 +162,14 @@ function mk(now: number, s: Spec): Client {
       signedAt: new Date(now - 13 * 3_600_000).toISOString(),
       signerName: `${s.fn} ${s.ln}`,
     };
+    const submission: Submission = s.forceFailedSubmission
+      ? {
+          status: "failed",
+          at: new Date(now - 13 * 3_600_000).toISOString(),
+          note: "לא נבחרו מוצרים לשליחה — אין מה לשלוח לחברה",
+        }
+      : { status: "success", at: new Date(now - 13 * 3_600_000).toISOString() };
+    client.submission = submission;
   }
   return client;
 }
@@ -177,12 +182,12 @@ export function buildDemoClients(): Client[] {
   const adamHoldings = polisot(543);
 
   return [
-    mk(now, { fn: "ענת", ln: "עובדיה", pid: "512345678", mob: "053-4455667", stage: "sms_sent", ages: [1, 3] }),
-    mk(now, { fn: "גל", ln: "נגרין", pid: "207654321", mob: "050-1234567", stage: "sms_sent", ages: [2, 30] }),
-    mk(now, { fn: "אורלי", ln: "חזקיאל", pid: "301234567", mob: "054-1122334", stage: "sms_sent", ages: [2, 80] }),
-    mk(now, { fn: "גיא", ln: "דוד חייק", pid: "204455661", mob: "050-9988776", stage: "authorized", ages: [30, 20, 5], withMislaka: true }),
+    // just uploaded, agent hasn't started working the file yet
+    mk(now, { fn: "ענת", ln: "עובדיה", pid: "512345678", mob: "053-4455667", stage: "authorized", ages: [1] }),
+    mk(now, { fn: "גל", ln: "נגרין", pid: "207654321", mob: "050-1234567", stage: "authorized", ages: [30] }),
+    mk(now, { fn: "אורלי", ln: "חזקיאל", pid: "301234567", mob: "054-1122334", stage: "authorized", ages: [80] }),
     mk(now, {
-      fn: "רועי", ln: "גינוסר", pid: "033845090", mob: "052-4567890", stage: "authorized", ages: [40, 20, 8], withMislaka: true,
+      fn: "רועי", ln: "גינוסר", pid: "033845090", mob: "052-4567890", stage: "authorized", ages: [8],
       na: {
         maritalStatus: "married", employer: "טק-נובה מערכות בע״מ", savingsGoal: "פרישה", timeHorizon: "ארוך טווח", riskLevel: 4,
         justification: "דמי ניהול גבוהים בביטוח המנהלים במגדל — מומלץ ניוד לקרן פנסיה מקיפה זולה יותר במנורה מבטחים.",
@@ -195,13 +200,18 @@ export function buildDemoClients(): Client[] {
       ],
     }),
     mk(now, {
-      fn: "אימן", ln: "טאהא", pid: "066778899", mob: "052-7766554", stage: "signature", ages: [50, 40, 10, 20], withMislaka: true,
+      fn: "אימן", ln: "טאהא", pid: "066778899", mob: "052-7766554", stage: "signature", ages: [30, 20],
       na: { maritalStatus: "single", employer: "עצמאי", savingsGoal: "חיסכון ארוך טווח", riskLevel: 3, updatedAt: new Date(now - 15 * 3_600_000).toISOString() },
       productActions: [transferAction(aimanHoldings[0], "הפניקס", "מושלם פלטינום", 320, now)],
     }),
     mk(now, {
-      fn: "אדם", ln: "חזקיאל", pid: "319876543", mob: "058-3344556", stage: "submitted", ages: [60, 30, 24, 12], withMislaka: true,
+      fn: "אדם", ln: "חזקיאל", pid: "319876543", mob: "058-3344556", stage: "submitted", ages: [54, 24, 12],
       productActions: [transferAction(adamHoldings[0], "אלטשולר שחם", "מסלול כללי", 980, now)],
+    }),
+    // demonstrates a failed submission — signed but no product decisions were ever made
+    mk(now, {
+      fn: "נועה", ln: "שרון", pid: "422113355", mob: "054-9012345", stage: "submitted", ages: [40, 20, 8],
+      forceFailedSubmission: true,
     }),
   ];
 }

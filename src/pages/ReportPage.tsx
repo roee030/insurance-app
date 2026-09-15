@@ -3,10 +3,7 @@ import { useParams } from "react-router-dom";
 import { Printer, ShieldCheck, TrendingUp, Sparkles } from "lucide-react";
 import type { Report } from "@/domain/types";
 import { api } from "@/lib/api";
-import { formatDate } from "@/lib/utils";
-
-const ils = (n?: number) =>
-  n == null ? "—" : `₪${n.toLocaleString("he-IL")}`;
+import { formatDate, formatCurrency as ils } from "@/lib/utils";
 
 const MARITAL_HE: Record<string, string> = {
   single: "רווק/ה",

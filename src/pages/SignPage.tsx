@@ -3,9 +3,7 @@ import { useParams } from "react-router-dom";
 import { ShieldCheck, PenLine, CheckCircle2, Loader2 } from "lucide-react";
 import type { SignView } from "@/domain/types";
 import { api } from "@/lib/api";
-
-const ils = (n?: number) =>
-  n == null ? "—" : `₪${n.toLocaleString("he-IL")}`;
+import { formatCurrency as ils } from "@/lib/utils";
 
 export function SignPage() {
   const { token } = useParams();

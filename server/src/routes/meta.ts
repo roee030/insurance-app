@@ -1,5 +1,4 @@
 import { Router } from "express";
-import { getDB } from "../db.js";
 import { mislaka } from "../mislaka/index.js";
 import { config } from "../config.js";
 
@@ -12,12 +11,6 @@ metaRouter.get("/manufacturers", async (_req, res) => {
   } catch (err) {
     res.status(502).json({ error: "failed", detail: String(err) });
   }
-});
-
-/** GET /api/webhooks/logs — recent webhook deliveries (audit / debugging). */
-metaRouter.get("/webhooks/logs", async (_req, res) => {
-  const db = await getDB();
-  res.json(db.webhookLogs.slice(0, 50));
 });
 
 /** GET /api/health — status + which Mislaka mode is active. */

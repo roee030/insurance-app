@@ -12,7 +12,7 @@ import {
 import type { Client } from "@/domain/types";
 import { useClients } from "@/store/useClients";
 import { Button } from "./ui/Button";
-import { formatDate } from "@/lib/utils";
+import { formatDate, formatCurrency } from "@/lib/utils";
 
 function reportUrl(id: string) {
   return `${window.location.origin}/report/${id}`;
@@ -89,8 +89,7 @@ export function ReportsSection({ client }: { client: Client }) {
                   דוח תיק פנסיוני · גרסה {r.version}
                 </div>
                 <div className="text-[11px] text-slate-500">
-                  {formatDate(r.createdAt)} · ₪
-                  {r.snapshot.totals.accumulation.toLocaleString()} ·{" "}
+                  {formatDate(r.createdAt)} · {formatCurrency(r.snapshot.totals.accumulation)} ·{" "}
                   {r.snapshot.totals.productCount} מוצרים
                 </div>
               </div>

@@ -1,6 +1,6 @@
 /**
  * Seeds server/data/db.json with a clean, realistic demo dataset spanning
- * all 4 pipeline stages. Run with: node scripts/seed.mjs (from server/).
+ * all 3 pipeline stages. Run with: node scripts/seed.mjs (from server/).
  * Restart the dev server afterwards — the DB is cached in memory on load.
  */
 import { writeFileSync, mkdirSync } from "node:fs";
@@ -10,7 +10,7 @@ const iso = (hAgo) => new Date(now - hAgo * 3600000).toISOString();
 const uid = () => crypto.randomUUID();
 const tok = () => uid().replace(/-/g, "").slice(0, 14);
 
-const HSTAGES = ["lead", "sms_sent", "authorized", "signature", "submitted"];
+const HSTAGES = ["authorized", "signature", "submitted"];
 
 function hist(upto, agesH) {
   let cursor = agesH.reduce((a, b) => a + b, 0);
@@ -88,7 +88,7 @@ function newAction(productType, targetCompany, targetTrack, premium) {
   };
 }
 
-function mk({ fn, ln, pid, mob, stage, ages, productActions, withMislaka, na }) {
+function mk({ fn, ln, pid, mob, stage, ages, productActions, na, forceFailedSubmission }) {
   const h = hist(stage, ages);
   const c = {
     id: uid(),
@@ -100,28 +100,28 @@ function mk({ fn, ln, pid, mob, stage, ages, productActions, withMislaka, na }) 
     history: h,
     createdAt: h[0].at,
     updatedAt: h[h.length - 1].at,
-  };
-  c.transactionId = "mock-" + uid();
-  c.leadPageUrl = "https://mock.mislaka-api.co.il/lead/" + c.transactionId;
-  if (withMislaka) {
-    c.mislaka = {
-      transactionId: c.transactionId,
+    mislaka: {
+      transactionId: "mock-" + uid(),
       mislakaNumber: "MSL-" + pid.slice(0, 8),
-      actionCode: "9100",
-      receivedAt: iso(10),
+      actionCode: "file_upload",
+      receivedAt: h[0].at,
       polisot: polisot(Number(pid.slice(-3))),
-    };
-  }
+    },
+  };
   if (na) c.needsAssessment = na;
   if (productActions) c.productActions = productActions;
   if (stage === "signature") c.signRequest = { token: tok(), sentAt: iso(18) };
-  if (stage === "submitted")
+  if (stage === "submitted") {
     c.signRequest = {
       token: tok(),
       sentAt: iso(20),
       signedAt: iso(13),
       signerName: fn + " " + ln,
     };
+    c.submission = forceFailedSubmission
+      ? { status: "failed", at: iso(13), note: "לא נבחרו מוצרים לשליחה — אין מה לשלוח לחברה" }
+      : { status: "success", at: iso(13) };
+  }
   return c;
 }
 
@@ -130,12 +130,12 @@ const aimanHoldings = polisot(899);
 const adamHoldings = polisot(543);
 
 const clients = [
-  mk({ fn: "ענת", ln: "עובדיה", pid: "512345678", mob: "0534455667", stage: "sms_sent", ages: [1, 3] }),
-  mk({ fn: "גל", ln: "נגרין", pid: "207654321", mob: "0501234567", stage: "sms_sent", ages: [2, 30] }),
-  mk({ fn: "אורלי", ln: "חזקיאל", pid: "301234567", mob: "0541122334", stage: "sms_sent", ages: [2, 80] }),
-  mk({ fn: "גיא", ln: "דוד חייק", pid: "204455661", mob: "0509988776", stage: "authorized", ages: [30, 20, 5], withMislaka: true }),
+  // just uploaded, agent hasn't started working the file yet
+  mk({ fn: "ענת", ln: "עובדיה", pid: "512345678", mob: "0534455667", stage: "authorized", ages: [1] }),
+  mk({ fn: "גל", ln: "נגרין", pid: "207654321", mob: "0501234567", stage: "authorized", ages: [30] }),
+  mk({ fn: "אורלי", ln: "חזקיאל", pid: "301234567", mob: "0541122334", stage: "authorized", ages: [80] }),
   mk({
-    fn: "רועי", ln: "גינוסר", pid: "033845090", mob: "0524567890", stage: "authorized", ages: [40, 20, 8], withMislaka: true,
+    fn: "רועי", ln: "גינוסר", pid: "033845090", mob: "0524567890", stage: "authorized", ages: [8],
     na: {
       maritalStatus: "married", employer: "טק-נובה מערכות בע״מ", savingsGoal: "פרישה", timeHorizon: "ארוך טווח", riskLevel: 4,
       justification: "דמי ניהול גבוהים בביטוח המנהלים במגדל — מומלץ ניוד לקרן פנסיה מקיפה זולה יותר במנורה מבטחים.",
@@ -148,16 +148,18 @@ const clients = [
     ],
   }),
   mk({
-    fn: "אימן", ln: "טאהא", pid: "066778899", mob: "0527766554", stage: "signature", ages: [50, 40, 10, 20], withMislaka: true,
+    fn: "אימן", ln: "טאהא", pid: "066778899", mob: "0527766554", stage: "signature", ages: [30, 20],
     na: { maritalStatus: "single", employer: "עצמאי", savingsGoal: "חיסכון ארוך טווח", riskLevel: 3, updatedAt: iso(15) },
     productActions: [transferAction(aimanHoldings[0], "הפניקס", "מושלם פלטינום", 320)],
   }),
   mk({
-    fn: "אדם", ln: "חזקיאל", pid: "319876543", mob: "0583344556", stage: "submitted", ages: [60, 30, 24, 12], withMislaka: true,
+    fn: "אדם", ln: "חזקיאל", pid: "319876543", mob: "0583344556", stage: "submitted", ages: [54, 24, 12],
     productActions: [transferAction(adamHoldings[0], "אלטשולר שחם", "מסלול כללי", 980)],
   }),
+  // demonstrates a failed submission — signed but no product decisions were ever made
+  mk({ fn: "נועה", ln: "שרון", pid: "422113355", mob: "0549012345", stage: "submitted", ages: [40, 20, 8], forceFailedSubmission: true }),
 ];
 
 mkdirSync("data", { recursive: true });
-writeFileSync("data/db.json", JSON.stringify({ clients, webhookLogs: [] }, null, 2));
-console.log("seeded", clients.length, "clients across 4 stages");
+writeFileSync("data/db.json", JSON.stringify({ clients }, null, 2));
+console.log("seeded", clients.length, "clients across 3 stages");

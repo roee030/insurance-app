@@ -1,7 +1,7 @@
 import { useState } from "react";
-import { PenLine, Copy, Check, ExternalLink, CheckCircle2 } from "lucide-react";
+import { PenLine, Copy, Check, ExternalLink, CheckCircle2, AlertTriangle } from "lucide-react";
 import type { Client } from "@/domain/types";
-import { api } from "@/lib/api";
+import { api, DEMO } from "@/lib/api";
 import { useClients } from "@/store/useClients";
 import { formatDate } from "@/lib/utils";
 
@@ -35,13 +35,32 @@ export function SignatureSection({ client }: { client: Client }) {
   };
 
   if (signed) {
+    const failed = client.submission?.status === "failed";
     return (
-      <div className="rounded-2xl border border-emerald-500/20 bg-emerald-500/[0.06] p-4">
-        <div className="flex items-center gap-2 text-sm font-semibold text-emerald-700">
-          <CheckCircle2 className="size-4" /> הלקוח חתם דיגיטלית
+      <div
+        className={
+          failed
+            ? "rounded-2xl border border-red-200 bg-red-50 p-4"
+            : "rounded-2xl border border-emerald-500/20 bg-emerald-500/[0.06] p-4"
+        }
+      >
+        <div
+          className={
+            failed
+              ? "flex items-center gap-2 text-sm font-semibold text-red-600"
+              : "flex items-center gap-2 text-sm font-semibold text-emerald-700"
+          }
+        >
+          {failed ? <AlertTriangle className="size-4" /> : <CheckCircle2 className="size-4" />}
+          הלקוח חתם דיגיטלית
         </div>
         <p className="mt-1 text-[12px] text-slate-500">
           נחתם ע״י {sr.signerName ?? "הלקוח"} · {formatDate(sr.signedAt!)}
+        </p>
+        <p className={failed ? "mt-1 text-[12px] text-red-500" : "mt-1 text-[12px] text-emerald-600"}>
+          {failed
+            ? `שליחה לחברת הביטוח נכשלה${client.submission?.note ? ` — ${client.submission.note}` : ""}`
+            : "נשלח בהצלחה לחברת הביטוח"}
         </p>
       </div>
     );
@@ -86,13 +105,17 @@ export function SignatureSection({ client }: { client: Client }) {
         </a>
       </div>
 
-      <button
-        onClick={demoSign}
-        disabled={busy}
-        className="mt-3 w-full rounded-xl border border-violet-500/20 bg-violet-500/[0.06] px-3 py-2 text-[11px] text-violet-700 hover:bg-violet-500/10 disabled:opacity-50"
-      >
-        דמה חתימת לקוח (דמו)
-      </button>
+      {/* Only in the demo build — against a real backend this would let the
+          agent forge the client's own signature through the real endpoint. */}
+      {DEMO && (
+        <button
+          onClick={demoSign}
+          disabled={busy}
+          className="mt-3 w-full rounded-xl border border-violet-500/20 bg-violet-500/[0.06] px-3 py-2 text-[11px] text-violet-700 hover:bg-violet-500/10 disabled:opacity-50"
+        >
+          דמה חתימת לקוח (דמו)
+        </button>
+      )}
     </div>
   );
 }

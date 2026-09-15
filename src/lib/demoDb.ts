@@ -11,9 +11,12 @@ import type {
   Report,
   ReportSnapshot,
   SignView,
+  Submission,
 } from "@/domain/types";
-import { advance as advanceStage, nextStage } from "@/domain/pipeline";
+import { advance as advanceStage } from "@/domain/pipeline";
 import { buildDemoClients, DEMO_MANUFACTURERS } from "@/data/demoSeed";
+import { parseMislakaExport, MislakaExportParseError } from "./parseMislakaExport";
+import type { NewClientInput } from "./api";
 
 /**
  * Persisted to localStorage so a shared /report/:id or /sign/:token link
@@ -22,7 +25,7 @@ import { buildDemoClients, DEMO_MANUFACTURERS } from "@/data/demoSeed";
  * memory). It does NOT sync across different browsers/devices — there's no
  * server — so this is a single-browser demo, not real multi-user state.
  */
-const STORAGE_KEY = "insurance-app-demo-v1";
+const STORAGE_KEY = "insurance-app-demo-v2";
 
 function loadClients(): Client[] {
   try {
@@ -50,51 +53,9 @@ let clients: Client[] = loadClients();
 
 const AGENT_NAME = "יואל תורגמן";
 const AGENCY_NAME = "תורגמן סוכנות לביטוח";
-/** Simulated Mislaka turnaround in the demo — long enough to feel real. */
-const WEBHOOK_DELAY_MS = 6000;
 
 function find(id: string): Client | undefined {
   return clients.find((c) => c.id === id);
-}
-
-function fakePolisot(personId: string) {
-  const seed = Number(personId.slice(-1)) || 3;
-  const pool = [
-    {
-      manufacturer: "הראל",
-      product_type: "פנסיה מקיפה",
-      polisa_number: "PH-" + personId.slice(0, 6),
-      polisa_name: "הראל פנסיה מקיפה",
-      polisa_status: "active",
-      balance: 120000 + seed * 9000,
-      track: "מסלול מותאם לגיל עד 50",
-      feeAccumulation: 0.3,
-      feeDeposit: 2.25,
-    },
-    {
-      manufacturer: "מגדל",
-      product_type: "ביטוח מנהלים",
-      polisa_number: "MG-" + personId.slice(2, 8),
-      polisa_name: "מגדל לעצמאים",
-      polisa_status: "active",
-      balance: 55000 + seed * 4000,
-      track: "מסלול כללי",
-      feeAccumulation: 0.85,
-      feeDeposit: 3.5,
-    },
-    {
-      manufacturer: "כלל",
-      product_type: "קרן השתלמות",
-      polisa_number: "CL-" + personId.slice(1, 7),
-      polisa_name: "כלל השתלמות",
-      polisa_status: seed % 2 ? "active" : "frozen",
-      balance: 32000 + seed * 2500,
-      track: "מסלול מנייתי",
-      feeAccumulation: 0.6,
-      feeDeposit: 0,
-    },
-  ];
-  return pool.slice(0, 2 + (seed % 2));
 }
 
 function weightedAvgFee(holdings: { balance?: number; feeAccumulation?: number }[]): number {
@@ -140,22 +101,13 @@ function signView(client: Client): SignView {
   };
 }
 
-/** Fires once, asynchronously — simulates the Mislaka's return-of-data. */
-function scheduleMislakaReturn(clientId: string) {
-  setTimeout(() => {
-    const c = find(clientId);
-    if (!c || c.stage !== "sms_sent") return;
-    c.mislaka = {
-      transactionId: c.transactionId ?? crypto.randomUUID(),
-      mislakaNumber: "MSL-" + crypto.randomUUID().slice(0, 8),
-      actionCode: "9100",
-      receivedAt: new Date().toISOString(),
-      polisot: fakePolisot(c.personId),
-    };
-    const idx = clients.findIndex((x) => x.id === clientId);
-    clients[idx] = advanceStage(c, "התקבל אישור מסלקה — נתונים נשמרו");
-    persist();
-  }, WEBHOOK_DELAY_MS);
+/** Same real check the server runs — see routes/signature.ts for why. */
+function submitToInsuranceCompanies(client: Client): Submission {
+  const at = new Date().toISOString();
+  if (!client.productActions || client.productActions.length === 0) {
+    return { status: "failed", at, note: "לא נבחרו מוצרים לשליחה — אין מה לשלוח לחברה" };
+  }
+  return { status: "success", at };
 }
 
 export const demoDb = {
@@ -165,37 +117,38 @@ export const demoDb = {
 
   getClient: (id: string) => find(id),
 
-  createClient: (input: {
-    firstName: string;
-    lastName: string;
-    personId: string;
-    mobile: string;
-    email?: string;
-  }) => {
+  /** Parses the uploaded file and creates the client already "authorized". */
+  createClient: (input: NewClientInput) => {
+    let parsed;
+    try {
+      parsed = parseMislakaExport(input.mislakaFileContent);
+    } catch (err) {
+      throw err instanceof MislakaExportParseError
+        ? err
+        : new Error("שגיאה בקריאת הקובץ");
+    }
     const now = new Date().toISOString();
-    // "lead" is a real history entry but isn't in STAGE_ORDER (see pipeline.ts),
-    // so nextStage()-based advance() can't walk out of it — set sms_sent directly,
-    // exactly like the server's setStage(client, "sms_sent") does.
     const client: Client = {
       id: crypto.randomUUID(),
-      ...input,
-      stage: "sms_sent",
-      history: [
-        { id: crypto.randomUUID(), stage: "lead", at: now },
-        {
-          id: crypto.randomUUID(),
-          stage: "sms_sent",
-          at: now,
-          note: "נשלח SMS עם קישור אישי למסלקה",
-        },
-      ],
-      transactionId: "mock-" + crypto.randomUUID(),
-      leadPageUrl: "https://mock.mislaka-api.co.il/lead/demo",
+      firstName: input.firstName,
+      lastName: input.lastName,
+      personId: input.personId,
+      mobile: input.mobile,
+      email: input.email,
+      stage: "authorized",
+      history: [{ id: crypto.randomUUID(), stage: "authorized", at: now, note: "נתוני מסלקה נטענו מקובץ" }],
+      mislaka: {
+        transactionId: parsed.transactionId ?? crypto.randomUUID(),
+        mislakaNumber: parsed.mislakaNumber,
+        actionCode: "file_upload",
+        receivedAt: now,
+        polisot: parsed.polisot,
+        raw: parsed.raw,
+      },
       createdAt: now,
       updatedAt: now,
     };
     clients = [client, ...clients];
-    scheduleMislakaReturn(client.id);
     persist();
     return client;
   },
@@ -235,34 +188,20 @@ export const demoDb = {
   advance: (id: string, note?: string) => {
     const c = find(id);
     if (!c) return null;
-    const target = nextStage(c.stage);
     const idx = clients.findIndex((x) => x.id === id);
     const updated = advanceStage(c, note);
-    if (target === "signature" && !updated.signRequest) {
+    if (updated.stage === "signature" && !updated.signRequest) {
       updated.signRequest = {
         token: crypto.randomUUID().replace(/-/g, "").slice(0, 14),
         sentAt: new Date().toISOString(),
       };
     }
+    if (updated.stage === "submitted" && !updated.submission) {
+      updated.submission = submitToInsuranceCompanies(updated);
+    }
     clients[idx] = updated;
     persist();
     return updated;
-  },
-
-  simulateApproval: (id: string) => {
-    const c = find(id);
-    if (!c || c.stage !== "sms_sent") return null;
-    c.mislaka = {
-      transactionId: c.transactionId ?? crypto.randomUUID(),
-      mislakaNumber: "MSL-" + crypto.randomUUID().slice(0, 8),
-      actionCode: "9100",
-      receivedAt: new Date().toISOString(),
-      polisot: fakePolisot(c.personId),
-    };
-    const idx = clients.findIndex((x) => x.id === id);
-    clients[idx] = advanceStage(c, "התקבל אישור מסלקה — נתונים נשמרו");
-    persist();
-    return { ok: true };
   },
 
   manufacturers: () => DEMO_MANUFACTURERS,
@@ -301,9 +240,14 @@ export const demoDb = {
     if (!c.signRequest.signedAt) {
       c.signRequest.signedAt = new Date().toISOString();
       c.signRequest.signerName = signerName;
+      c.submission = submitToInsuranceCompanies(c);
       if (c.stage === "signature") {
         const idx = clients.findIndex((x) => x.id === c.id);
-        clients[idx] = advanceStage(c, "הלקוח חתם דיגיטלית — נשלח לחברה");
+        const note =
+          c.submission.status === "success"
+            ? "הלקוח חתם דיגיטלית — נשלח לחברה בהצלחה"
+            : `הלקוח חתם דיגיטלית — השליחה לחברה נכשלה: ${c.submission.note}`;
+        clients[idx] = advanceStage(c, note);
       }
       persist();
     }

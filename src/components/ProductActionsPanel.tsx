@@ -2,7 +2,7 @@ import { useState } from "react";
 import { ArrowLeftRight, Plus, Sparkles, Trash2, X } from "lucide-react";
 import type { Client, PolisaSummary, ProductAction } from "@/domain/types";
 import { useClients } from "@/store/useClients";
-import { cn } from "@/lib/utils";
+import { cn, formatCurrency } from "@/lib/utils";
 
 const PRODUCT_TYPES = [
   "פנסיה מקיפה",
@@ -151,7 +151,7 @@ function HoldingRow({
             {holding.manufacturer} · {holding.product_type}
           </div>
           <div className="text-[11px] text-slate-500">
-            צבירה: ₪{(holding.balance ?? 0).toLocaleString()}
+            צבירה: {formatCurrency(holding.balance ?? 0)}
             {holding.track ? ` · ${holding.track}` : ""}
           </div>
         </div>

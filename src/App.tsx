@@ -17,6 +17,11 @@ const ReportPage = lazy(() =>
 const SignPage = lazy(() =>
   import("./pages/SignPage").then((m) => ({ default: m.SignPage })),
 );
+const AgentDashboardPage = lazy(() =>
+  import("./pages/AgentDashboardPage").then((m) => ({
+    default: m.AgentDashboardPage,
+  })),
+);
 
 /** Shell for the internal CRM pages — owns polling + the add-client dialog. */
 function CrmLayout() {
@@ -56,6 +61,7 @@ export default function App() {
         <Route element={<CrmLayout />}>
           <Route path="/" element={<DashboardPage />} />
           <Route path="/client/:id" element={<ClientProfilePage />} />
+          <Route path="/performance" element={<AgentDashboardPage />} />
         </Route>
       </Routes>
     </Suspense>

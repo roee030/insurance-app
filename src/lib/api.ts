@@ -13,8 +13,14 @@ import { demoDb } from "./demoDb";
  * fetch(). Nothing outside this file needs to know — same shapes, same
  * async contract, just no network. Set via `VITE_DEMO_MODE=1` (see
  * .env.demo / the "build:demo" script).
+ *
+ * Exported (not just module-local) because a couple of UI affordances —
+ * e.g. the "simulate client signature" button — must only ever appear in
+ * the demo build. Against a real backend that button would let an agent
+ * forge a client's digital signature through the real /sign/:token
+ * endpoint, so any demo-only action must check this before rendering.
  */
-const DEMO = import.meta.env.VITE_DEMO_MODE === "1";
+export const DEMO = import.meta.env.VITE_DEMO_MODE === "1";
 
 const BASE =
   (import.meta.env.VITE_API_URL as string | undefined) ??
@@ -56,6 +62,8 @@ export interface NewClientInput {
   personId: string;
   mobile: string;
   email?: string;
+  /** Raw text content of the מסלקה export file the agent uploaded. */
+  mislakaFileContent: string;
 }
 
 export const api = {
@@ -72,7 +80,7 @@ export const api = {
       ? demo(() => orThrow(demoDb.getClient(id)))
       : req<Client>(`/clients/${id}`),
 
-  /** Creates the client AND triggers the SMS with the personal Mislaka link. */
+  /** Creates the client from an uploaded מסלקה export — no waiting. */
   createClient: (input: NewClientInput) =>
     DEMO
       ? demo(() => demoDb.createClient(input), 500)
@@ -108,14 +116,6 @@ export const api = {
       : req<Client>(`/clients/${id}/advance`, {
           method: "POST",
           body: JSON.stringify({ note }),
-        }),
-
-  /** mock-mode only — manually fire the return-of-data webhook. */
-  simulateApproval: (id: string) =>
-    DEMO
-      ? demo(() => orThrow(demoDb.simulateApproval(id)))
-      : req<{ ok: boolean }>(`/clients/${id}/simulate-approval`, {
-          method: "POST",
         }),
 
   manufacturers: () =>

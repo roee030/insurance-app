@@ -1,22 +1,7 @@
-import { config, webhookUrl } from "../config.js";
 import type { PolisaSummary } from "../types.js";
-import type {
-  CreateLeadPageInput,
-  CreateLeadPageResult,
-  Manufacturer,
-  MislakaClient,
-  SendFormInput,
-  TransactionStatus,
-} from "./client.js";
+import type { Manufacturer, MislakaClient } from "./client.js";
 
-interface MockTx {
-  transactionId: string;
-  personId: string;
-  actionCode: string;
-  polisot: PolisaSummary[];
-}
-
-const MANUFACTURERS: Manufacturer[] = [
+export const MANUFACTURERS: Manufacturer[] = [
   { name: "מגדל מקפת קרנות פנסיה וגמל בע\"מ", manager_id: 512237744, handler: 512237744 },
   { name: "הראל פנסיה וגמל בע\"מ", manager_id: 513026484, handler: 513026484 },
   { name: "כלל פנסיה וגמל בע\"מ", manager_id: 513973156, handler: 513973156 },
@@ -25,8 +10,8 @@ const MANUFACTURERS: Manufacturer[] = [
   { name: "אלטשולר שחם גמל ופנסיה בע\"מ", manager_id: 513173393, handler: 513173393 },
 ];
 
-function fakePolisot(personId: string): PolisaSummary[] {
-  // deterministic-ish set derived from the id so repeat calls are stable
+/** Deterministic sample policy set — used for the mock manufacturers list and the "sample file" download that helps agents see the expected upload format. */
+export function fakePolisot(personId: string): PolisaSummary[] {
   const seed = Number(personId.slice(-1)) || 3;
   const pool: PolisaSummary[] = [
     {
@@ -66,86 +51,8 @@ function fakePolisot(personId: string): PolisaSummary[] {
   return pool.slice(0, 2 + (seed % 2));
 }
 
-/**
- * Mock client — a fully local simulator of the Mislaka. No credentials, no
- * cost. It mimics the real async flow: createLeadPage returns immediately,
- * then after a delay it POSTs a "finished" webhook back to our own server,
- * exactly like the production callback would.
- */
+/** Mock client — local manufacturers list, no credentials, no cost. */
 export class MockMislakaClient implements MislakaClient {
-  private txs = new Map<string, MockTx>();
-
-  async createLeadPage(
-    input: CreateLeadPageInput,
-  ): Promise<CreateLeadPageResult> {
-    const transactionId = "mock-" + crypto.randomUUID();
-    const tx: MockTx = {
-      transactionId,
-      personId: input.personId,
-      actionCode: input.send9100Process ? "9100" : "harBituach",
-      polisot: fakePolisot(input.personId),
-    };
-    this.txs.set(transactionId, tx);
-
-    const target = input.webhookUrl || webhookUrl;
-    // Fire the webhook asynchronously, simulating the client signing + Mislaka
-    // processing time. Never block the create call on this.
-    setTimeout(() => {
-      void this.fireWebhook(target, tx);
-    }, config.mock.webhookDelayMs);
-
-    return {
-      transactionId,
-      leadPageUrl: `https://mock.mislaka-api.co.il/lead/${transactionId}`,
-    };
-  }
-
-  private async fireWebhook(target: string, tx: MockTx): Promise<void> {
-    try {
-      await fetch(target, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          transaction_id: tx.transactionId,
-          mislaka_number: "MSL-" + tx.transactionId.slice(5, 13),
-          status: "finished",
-          action_code: tx.actionCode,
-          person_id_number: tx.personId,
-        }),
-      });
-      console.log(`[mock] webhook fired → ${target} (${tx.transactionId})`);
-    } catch (err) {
-      console.error("[mock] webhook failed:", err);
-    }
-  }
-
-  async sendForm(_input: SendFormInput): Promise<{ formId: string }> {
-    return { formId: "mock-form-" + crypto.randomUUID() };
-  }
-
-  async getTransaction(transactionId: string): Promise<TransactionStatus> {
-    const tx = this.txs.get(transactionId);
-    return {
-      transactionId,
-      mislakaNumber: "MSL-" + transactionId.slice(5, 13),
-      status: "finished",
-      actionCode: tx?.actionCode ?? "9100",
-      personId: tx?.personId ?? "",
-    };
-  }
-
-  async getPolisot(transactionId: string): Promise<PolisaSummary[]> {
-    return this.txs.get(transactionId)?.polisot ?? fakePolisot("000000003");
-  }
-
-  async getPolisotData(transactionId: string): Promise<unknown> {
-    return {
-      transaction_id: transactionId,
-      status: "finished",
-      polisot: this.getPolisot(transactionId),
-    };
-  }
-
   async getManufacturers(): Promise<Manufacturer[]> {
     return MANUFACTURERS;
   }

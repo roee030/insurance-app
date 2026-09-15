@@ -63,8 +63,8 @@ export function StatsRow() {
       />
       <Stat
         icon={Clock}
-        label="ממתינים לתגובה"
-        value={clients.filter((c) => c.stage === "sms_sent" || c.stage === "signature").length}
+        label="ממתינים לחתימת לקוח"
+        value={clients.filter((c) => c.stage === "signature").length}
         accent="bg-amber-500/10 text-amber-600 ring-amber-500/20"
         delay={0.05}
       />

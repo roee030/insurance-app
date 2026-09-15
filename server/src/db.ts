@@ -7,7 +7,7 @@ import type { DB } from "./types.js";
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const DB_PATH = join(__dirname, "..", "data", "db.json");
 
-const empty: DB = { clients: [], webhookLogs: [] };
+const empty: DB = { clients: [] };
 
 let cache: DB | null = null;
 let writing: Promise<void> = Promise.resolve();
@@ -47,7 +47,6 @@ export async function getDB(): Promise<DB> {
 export async function updateDB<T>(fn: (db: DB) => T): Promise<T> {
   const db = await load();
   const result = fn(db);
-  db;
   await persist(db);
   return result;
 }

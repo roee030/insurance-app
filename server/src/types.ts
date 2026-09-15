@@ -1,7 +1,7 @@
 /**
  * Server-side domain model. Mirrors the frontend pipeline stages so the two
  * stay in sync, and adds the fields the Mislaka integration needs
- * (transaction ids, raw mislaka payloads, webhook audit trail).
+ * (transaction ids, raw uploaded מסלקה payloads).
  */
 
 export type StageId =
@@ -39,10 +39,10 @@ export interface PolisaSummary {
 export interface MislakaResult {
   transactionId: string;
   mislakaNumber?: string;
-  actionCode: string; // "9100" | "harBituach" | ...
+  actionCode: string; // "file_upload" — the agent-uploaded מסלקה export
   receivedAt: string;
   polisot: PolisaSummary[];
-  /** Raw payload we must persist because Mislaka deletes it after 7 days. */
+  /** The raw uploaded payload, kept for traceability/audit. */
   raw?: unknown;
 }
 
@@ -70,6 +70,17 @@ export interface SignatureRequest {
   sentAt: string;
   signedAt?: string;
   signerName?: string;
+}
+
+/**
+ * The outcome of submitting the signed deal to the insurance company(ies) —
+ * set the moment the client signs. Surfaced to the agent as a notification
+ * (אישור קבלה: נשלח בהצלחה/כישלון) and shown on the closed client record.
+ */
+export interface Submission {
+  status: "success" | "failed";
+  at: string;
+  note?: string;
 }
 
 export type ProductActionKind = "transfer" | "new";
@@ -109,9 +120,6 @@ export interface Client {
   stage: StageId;
   history: StageEvent[];
 
-  /** Transaction currently in flight / completed at the Mislaka. */
-  transactionId?: string;
-  leadPageUrl?: string;
   mislaka?: MislakaResult;
 
   needsAssessment?: NeedsAssessment;
@@ -120,6 +128,7 @@ export interface Client {
   productActions?: ProductAction[];
 
   signRequest?: SignatureRequest;
+  submission?: Submission;
 
   /** Frozen client-facing reports generated over time (newest first). */
   reports?: Report[];
@@ -156,17 +165,6 @@ export interface Report {
   snapshot: ReportSnapshot;
 }
 
-export interface WebhookLog {
-  id: string;
-  at: string;
-  transactionId: string;
-  personId?: string;
-  status: string;
-  matchedClientId?: string;
-  raw: unknown;
-}
-
 export interface DB {
   clients: Client[];
-  webhookLogs: WebhookLog[];
 }

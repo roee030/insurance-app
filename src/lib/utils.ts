@@ -31,6 +31,11 @@ export function formatDate(iso: string): string {
   });
 }
 
+/** Shared ₪ formatter — single source so every screen renders amounts identically. */
+export function formatCurrency(n: number | undefined | null): string {
+  return n == null ? "—" : `₪${Math.round(n).toLocaleString("he-IL")}`;
+}
+
 export function initials(name: string): string {
   return name
     .split(" ")

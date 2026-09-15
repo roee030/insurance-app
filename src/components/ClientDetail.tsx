@@ -4,10 +4,10 @@ import {
   CreditCard,
   Mail,
   CheckCircle2,
-  Send,
   FileSignature,
   Building2,
   Sparkles,
+  AlertTriangle,
 } from "lucide-react";
 import { useClients } from "@/store/useClients";
 import { STAGES, isTerminal, hoursInStage, isStuck } from "@/domain/pipeline";
@@ -22,12 +22,12 @@ import { MislakaPanel } from "./MislakaPanel";
 import { NeedsAssessment } from "./NeedsAssessment";
 import { SignatureSection } from "./SignatureSection";
 import { ReportsSection } from "./ReportsSection";
-import { cn, formatDate } from "@/lib/utils";
+import { cn, formatDate, formatCurrency } from "@/lib/utils";
 
 function ActionIcon({ stage }: { stage: StageId }) {
   const map = {
-    lead: Send,
-    sms_sent: CheckCircle2,
+    lead: FileSignature,
+    sms_sent: FileSignature,
     authorized: FileSignature,
     policy: FileSignature,
     signature: Building2,
@@ -46,7 +46,6 @@ export function ClientDetail({
   hideHeader?: boolean;
 }) {
   const advanceClient = useClients((s) => s.advanceClient);
-  const simulateApproval = useClients((s) => s.simulateApproval);
   const [busy, setBusy] = useState(false);
 
   const meta = STAGES[client.stage];
@@ -161,7 +160,7 @@ export function ClientDetail({
                   </span>
                   {a.monthlyPremium != null && (
                     <span className="shrink-0 tabular-nums text-slate-500">
-                      ₪{a.monthlyPremium.toLocaleString()}/חודש
+                      {formatCurrency(a.monthlyPremium)}/חודש
                     </span>
                   )}
                 </div>
@@ -184,14 +183,6 @@ export function ClientDetail({
       {/* next action */}
       {!terminal ? (
         <div className="sticky bottom-0 -mx-1 rounded-2xl border border-line bg-surface/95 p-3 backdrop-blur">
-          {client.stage === "sms_sent" && (
-            <button
-              onClick={() => simulateApproval(client.id)}
-              className="mb-2 w-full rounded-xl border border-amber-500/20 bg-amber-500/[0.06] px-3 py-2 text-[11px] text-amber-600/90 hover:bg-amber-500/10"
-            >
-              דמה קבלת אישור מהמסלקה (דמו)
-            </button>
-          )}
           <Button
             onClick={handleAdvance}
             disabled={busy || needsProduct}
@@ -201,10 +192,19 @@ export function ClientDetail({
             {needsProduct ? "החלט על מוצר אחד לפחות כדי להמשיך" : meta.action}
           </Button>
         </div>
+      ) : client.submission?.status === "failed" ? (
+        <div className="rounded-2xl border border-red-200 bg-red-50 p-3 text-center text-xs text-red-600">
+          <AlertTriangle className="mx-auto mb-1 size-5" />
+          השליחה לחברת הביטוח נכשלה
+          {client.submission.note && ` — ${client.submission.note}`}
+          <div className="mt-0.5 text-red-400">
+            {formatDate(client.history.at(-1)!.at)}
+          </div>
+        </div>
       ) : (
         <div className="rounded-2xl bg-emerald-500/[0.06] p-3 text-center text-xs text-emerald-700">
           <CheckCircle2 className="mx-auto mb-1 size-5" />
-          נשלח ל
+          נשלח בהצלחה ל
           {client.productActions?.map((a) => a.targetCompany).join(", ") ??
             "חברת הביטוח"}{" "}
           · {formatDate(client.history.at(-1)!.at)}

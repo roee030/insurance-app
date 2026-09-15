@@ -36,7 +36,7 @@ export interface PolisaSummary {
 export interface MislakaResult {
   transactionId: string;
   mislakaNumber?: string;
-  actionCode: string;
+  actionCode: string; // "file_upload" — the agent-uploaded מסלקה export
   receivedAt: string;
   polisot: PolisaSummary[];
   raw?: unknown;
@@ -88,12 +88,11 @@ export interface Client {
   stage: StageId;
   history: StageEvent[];
 
-  transactionId?: string;
-  leadPageUrl?: string;
   mislaka?: MislakaResult;
   needsAssessment?: NeedsAssessment;
   productActions?: ProductAction[];
   signRequest?: SignatureRequest;
+  submission?: Submission;
   reports?: Report[];
 
   createdAt: string;
@@ -130,6 +129,13 @@ export interface SignatureRequest {
   signerName?: string;
 }
 
+/** Outcome of submitting the signed deal to the insurance company(ies). */
+export interface Submission {
+  status: "success" | "failed";
+  at: string;
+  note?: string;
+}
+
 /** Public view returned by the sign endpoint (what the client sees). */
 export interface SignView {
   clientName: string;
@@ -145,7 +151,7 @@ export interface SignView {
 export interface AppNotification {
   id: string;
   clientId: string;
-  kind: "mislaka_approved" | "signature_signed" | "sms_sent";
+  kind: "mislaka_loaded" | "submission_success" | "submission_failed";
   message: string;
   at: string;
   read: boolean;

@@ -1,11 +1,7 @@
 import { motion } from "motion/react";
 import { ShieldCheck, TrendingUp } from "lucide-react";
 import type { MislakaResult } from "@/domain/types";
-import { formatDate, cn } from "@/lib/utils";
-
-function fmt(n?: number) {
-  return n == null ? "—" : `₪${n.toLocaleString()}`;
-}
+import { formatDate, formatCurrency as fmt, cn } from "@/lib/utils";
 
 export function MislakaPanel({
   data,

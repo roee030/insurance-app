@@ -23,61 +23,56 @@ export interface StageMeta {
 }
 
 /**
- * The VISIBLE pipeline. "lead" and "policy" are intentionally excluded:
- * creating a client sends the SMS immediately (so it starts at sms_sent),
- * and once the data is in we go straight to producing the signature form
- * (no separate policy-opening column). Both remain in STAGES for history.
+ * The VISIBLE pipeline — only 3 stages now. "lead", "sms_sent" and "policy"
+ * are gone from the active flow: there's no more SMS/webhook wait, since
+ * the agent uploads the מסלקה export directly and the client starts with
+ * its data already in hand. They remain in STAGES/StageId for old records.
  */
-export const STAGE_ORDER: StageId[] = [
-  "sms_sent",
-  "authorized",
-  "signature",
-  "submitted",
-];
+export const STAGE_ORDER: StageId[] = ["authorized", "signature", "submitted"];
 
 export const STAGES: Record<StageId, StageMeta> = {
   lead: {
     id: "lead",
     label: "נרשם חדש",
-    description: "פרטי הלקוח הוזנו. יש לשלוח SMS עם קישור הרשאה למסלקה.",
+    description: "פרטי הלקוח הוזנו.",
     owner: "agent",
-    action: "שלח SMS למסלקה",
+    action: null,
     accent: "zinc",
     slaHours: 24,
   },
   sms_sent: {
     id: "sms_sent",
     label: "ממתין לאישור מסלקה",
-    description: "ה-SMS נשלח. ממתינים שהלקוח יאשר את ההרשאה במסלקה.",
+    description: "שלב היסטורי — הוסר מהתהליך הפעיל.",
     owner: "client",
-    action: "סמן כאושר (התקבל)",
+    action: null,
     accent: "amber",
     slaHours: 72,
   },
   authorized: {
     id: "authorized",
-    label: "אושר — נתונים התקבלו",
+    label: "בטיפול — נתונים נטענו",
     description:
-      "נתוני המסלקה התקבלו. השלם בירור צרכים ובחר מוצר/ניוד, ואז הפק את טופס החתימה.",
+      "נתוני המסלקה נטענו מהקובץ שהועלה. השלם בירור צרכים ובחר מוצר/ניוד, ואז הפק חוזה לחתימה.",
     owner: "agent",
-    action: "הפק טופס חתימה",
+    action: "הפק חוזה לחתימה",
     accent: "emerald",
     slaHours: 48,
   },
   policy: {
     id: "policy",
     label: "פתיחת פוליסה",
-    description: "בחירת מוצר, חברה ומסלול עבור הלקוח.",
+    description: "שלב היסטורי — מוזג לתוך שלב הטיפול.",
     owner: "agent",
-    action: "הפק טופס חתימה",
+    action: null,
     accent: "cyan",
     slaHours: 48,
   },
   signature: {
     id: "signature",
-    label: "ממתין לחתימה",
+    label: "ממתין לחתימת לקוח",
     description:
-      "טופס החתימה נשלח ללקוח לחתימה דיגיטלית. עם קבלת החתימה — נשלח אוטומטית לחברה.",
+      "החוזה נשלח ללקוח לחתימה דיגיטלית מרחוק. עם קבלת החתימה — נשלח אוטומטית לחברת הביטוח.",
     owner: "client",
     action: "סמן כנחתם ושלח לחברה",
     accent: "violet",
@@ -85,8 +80,8 @@ export const STAGES: Record<StageId, StageMeta> = {
   },
   submitted: {
     id: "submitted",
-    label: "נשלח לחברת הביטוח",
-    description: "התהליך הושלם. הטופס נשלח לחברת הביטוח שנבחרה.",
+    label: "הושלם",
+    description: "הלקוח חתם והבקשה נשלחה לחברת הביטוח — הרשומה סגורה.",
     owner: "done",
     action: null,
     accent: "green",
