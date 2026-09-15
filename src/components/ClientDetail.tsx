@@ -147,21 +147,39 @@ export function ClientDetail({
                 >
                   <span className="text-slate-700">
                     <span className="font-medium">{a.productType}</span>
-                    {a.kind === "transfer" ? (
+                    {a.kind === "transfer" && (
                       <>
                         {" "}
                         · ניוד מ־{a.sourceCompany} אל {a.targetCompany}
+                        {a.targetTrack ? ` · ${a.targetTrack}` : ""}
                       </>
-                    ) : (
-                      <> · פתיחה חדשה ב־{a.targetCompany}</>
                     )}
-                    {" · "}
-                    {a.targetTrack}
+                    {a.kind === "new" && (
+                      <>
+                        {" "}
+                        · פתיחה חדשה ב־{a.targetCompany}
+                        {a.targetTrack ? ` · ${a.targetTrack}` : ""}
+                      </>
+                    )}
+                    {a.kind === "modify" && (
+                      <> · שינוי כיסויים ב־{a.sourceCompany}</>
+                    )}
+                    {a.kind === "cancel" && (
+                      <> · ביטול פוליסה ב־{a.sourceCompany}</>
+                    )}
                   </span>
-                  {a.monthlyPremium != null && (
-                    <span className="shrink-0 tabular-nums text-slate-500">
-                      {formatCurrency(a.monthlyPremium)}/חודש
-                    </span>
+                  {a.kind === "modify" ? (
+                    a.monthlyPremium != null && (
+                      <span className="shrink-0 tabular-nums text-slate-500">
+                        {formatCurrency(a.beforePremium)} ← {formatCurrency(a.monthlyPremium)}/חודש
+                      </span>
+                    )
+                  ) : (
+                    a.monthlyPremium != null && (
+                      <span className="shrink-0 tabular-nums text-slate-500">
+                        {formatCurrency(a.monthlyPremium)}/חודש
+                      </span>
+                    )
                   )}
                 </div>
               ))}

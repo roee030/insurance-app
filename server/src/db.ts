@@ -7,7 +7,16 @@ import type { DB } from "./types.js";
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const DB_PATH = join(__dirname, "..", "data", "db.json");
 
-const empty: DB = { clients: [] };
+const empty: DB = {
+  clients: [],
+  settings: {
+    agentProfile: {},
+    answerBank: [],
+    discounts: [],
+    manufacturers: [],
+  },
+  documents: [],
+};
 
 let cache: DB | null = null;
 let writing: Promise<void> = Promise.resolve();

@@ -1,36 +1,34 @@
 import { useState } from "react";
-import { ArrowLeftRight, Plus, Sparkles, Trash2, X } from "lucide-react";
-import type { Client, PolisaSummary, ProductAction } from "@/domain/types";
+import {
+  ArrowLeftRight,
+  Ban,
+  Pencil,
+  Plus,
+  Sparkles,
+  Trash2,
+  X,
+} from "lucide-react";
+import type {
+  CancellationResponsibility,
+  Client,
+  PolisaSummary,
+  ProductAction,
+  ProductActionKind,
+} from "@/domain/types";
 import { useClients } from "@/store/useClients";
 import { cn, formatCurrency } from "@/lib/utils";
+import { calculatePremium, hasCalculatorSupport } from "@/domain/premiumCalculator";
+import { PRODUCT_TYPES, COMPANIES, TRACKS } from "@/domain/constants";
 
-const PRODUCT_TYPES = [
-  "פנסיה מקיפה",
-  "ביטוח מנהלים",
-  "ביטוח חיים",
-  "ביטוח בריאות",
-  "קרן השתלמות",
-  "גמל להשקעה",
-];
-const COMPANIES = [
-  "מגדל",
-  "הראל",
-  "כלל",
-  "הפניקס",
-  "מנורה מבטחים",
-  "אלטשולר שחם",
-  "מור",
-];
-const TRACKS = [
-  "מסלול כללי",
-  "מסלול מניות עד 50",
-  "מסלול אג״ח",
-  "מסלול מותאם גיל",
-  "מושלם פלטינום",
+const RESPONSIBILITY: { value: CancellationResponsibility; label: string }[] = [
+  { value: "agent", label: "אני (הסוכן)" },
+  { value: "new_company", label: "החברה החדשה" },
+  { value: "client", label: "הלקוח" },
 ];
 
-function transferId(polisaNumber: string) {
-  return `transfer-${polisaNumber}`;
+/** One shared id per holding regardless of which action kind is chosen for it — switching between נייד/שינוי/ביטול on the same holding replaces the same entry instead of creating orphaned duplicates. */
+function holdingActionId(polisaNumber: string) {
+  return `action-${polisaNumber}`;
 }
 
 function Select({
@@ -39,14 +37,14 @@ function Select({
   onChange,
   placeholder,
 }: {
-  value: string;
+  value?: string;
   options: string[];
   onChange: (v: string) => void;
   placeholder: string;
 }) {
   return (
     <select
-      value={value}
+      value={value ?? ""}
       onChange={(e) => onChange(e.target.value)}
       className={cn(
         "h-9 w-full rounded-lg border border-line bg-white px-2 text-[13px] outline-none focus:border-cyan-500/60",
@@ -63,7 +61,37 @@ function Select({
   );
 }
 
-/** Editable target fields for one product action — shared by both card types. */
+function ResponsibilityPicker({
+  value,
+  onChange,
+}: {
+  value?: CancellationResponsibility;
+  onChange: (v: CancellationResponsibility) => void;
+}) {
+  return (
+    <div>
+      <div className="mb-1 text-[11px] text-slate-500">באחריות מי ביטול הפוליסה הקיימת</div>
+      <div className="flex flex-wrap gap-1.5">
+        {RESPONSIBILITY.map((r) => (
+          <button
+            key={r.value}
+            onClick={() => onChange(r.value)}
+            className={cn(
+              "rounded-lg border px-2.5 py-1.5 text-[12px] transition",
+              value === r.value
+                ? "border-violet-500/50 bg-violet-500/10 text-violet-800"
+                : "border-line bg-white text-slate-500 hover:border-slate-400",
+            )}
+          >
+            {r.label}
+          </button>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+/** Target fields for "transfer"/"new" — a different company/track than today. */
 function TargetFields({
   draft,
   onChange,
@@ -101,17 +129,77 @@ function TargetFields({
   );
 }
 
-/** One existing Mislaka holding — decide: leave as-is, or ניוד to a new company. */
-function HoldingRow({
-  client,
-  holding,
+/** Fields for "modify" — same company, changed sum insured/premium. */
+function ModifyFields({
+  draft,
+  onChange,
 }: {
-  client: Client;
-  holding: PolisaSummary;
+  draft: Pick<ProductAction, "beforeSum" | "afterSum" | "beforePremium" | "monthlyPremium">;
+  onChange: (patch: Partial<ProductAction>) => void;
 }) {
+  const num = (v: string) => (v === "" ? undefined : Number(v));
+  return (
+    <div className="grid grid-cols-2 gap-3">
+      <div className="rounded-lg bg-slate-50 p-2">
+        <div className="mb-1.5 text-[10px] font-medium text-slate-500">מצב לפני שינוי</div>
+        <div className="space-y-1.5">
+          <input
+            type="number"
+            dir="ltr"
+            value={draft.beforeSum ?? ""}
+            onChange={(e) => onChange({ beforeSum: num(e.target.value) })}
+            placeholder="סכום ביטוח ₪"
+            className="h-8 w-full rounded-md border border-line bg-white px-2 text-[12px] text-slate-900 outline-none placeholder:text-slate-400"
+          />
+          <input
+            type="number"
+            dir="ltr"
+            value={draft.beforePremium ?? ""}
+            onChange={(e) => onChange({ beforePremium: num(e.target.value) })}
+            placeholder="עלות חודשית ₪"
+            className="h-8 w-full rounded-md border border-line bg-white px-2 text-[12px] text-slate-900 outline-none placeholder:text-slate-400"
+          />
+        </div>
+      </div>
+      <div className="rounded-lg bg-cyan-50 p-2">
+        <div className="mb-1.5 text-[10px] font-medium text-cyan-700">מצב אחרי שינוי</div>
+        <div className="space-y-1.5">
+          <input
+            type="number"
+            dir="ltr"
+            value={draft.afterSum ?? ""}
+            onChange={(e) => onChange({ afterSum: num(e.target.value) })}
+            placeholder="סכום ביטוח ₪"
+            className="h-8 w-full rounded-md border border-cyan-200 bg-white px-2 text-[12px] text-slate-900 outline-none placeholder:text-slate-400"
+          />
+          <input
+            type="number"
+            dir="ltr"
+            value={draft.monthlyPremium ?? ""}
+            onChange={(e) => onChange({ monthlyPremium: num(e.target.value) })}
+            placeholder="עלות חודשית ₪"
+            className="h-8 w-full rounded-md border border-cyan-200 bg-white px-2 text-[12px] text-slate-900 outline-none placeholder:text-slate-400"
+          />
+        </div>
+      </div>
+    </div>
+  );
+}
+
+const KIND_META: Record<
+  Exclude<ProductActionKind, "new">,
+  { icon: typeof ArrowLeftRight; label: string }
+> = {
+  transfer: { icon: ArrowLeftRight, label: "נייד" },
+  modify: { icon: Pencil, label: "שנה כיסויים" },
+  cancel: { icon: Ban, label: "בטל" },
+};
+
+/** One existing Mislaka holding — decide: leave as-is, נייד, שנה כיסויים, or בטל. */
+function HoldingRow({ client, holding }: { client: Client; holding: PolisaSummary }) {
   const save = useClients((s) => s.saveProductAction);
   const remove = useClients((s) => s.removeProductAction);
-  const id = transferId(holding.polisa_number);
+  const id = holdingActionId(holding.polisa_number);
   const existing = client.productActions?.find((a) => a.id === id);
   const [open, setOpen] = useState(Boolean(existing));
   const [draft, setDraft] = useState<ProductAction>(
@@ -122,25 +210,55 @@ function HoldingRow({
       sourceCompany: holding.manufacturer,
       sourcePolisaNumber: holding.polisa_number,
       sourceBalance: holding.balance,
-      targetCompany: "",
-      targetTrack: "",
-      monthlyPremium: undefined,
       createdAt: "",
     },
   );
 
+  const isComplete = (a: ProductAction) => {
+    if (a.kind === "transfer") return Boolean(a.targetCompany && a.targetTrack && a.cancellationResponsibility);
+    if (a.kind === "cancel") return Boolean(a.cancellationResponsibility);
+    if (a.kind === "modify") return Boolean(a.afterSum != null || a.monthlyPremium != null);
+    return false;
+  };
+
   const patch = (p: Partial<ProductAction>) => {
     const next = { ...draft, ...p };
     setDraft(next);
-    if (next.targetCompany && next.targetTrack) {
-      void save(client.id, next).catch(() => {});
-    }
+    if (isComplete(next)) void save(client.id, next).catch(() => {});
   };
 
-  const cancel = () => {
+  const pickKind = (kind: Exclude<ProductActionKind, "new">) => {
+    const base: ProductAction = {
+      id,
+      productType: holding.product_type,
+      kind,
+      sourceCompany: holding.manufacturer,
+      sourcePolisaNumber: holding.polisa_number,
+      sourceBalance: holding.balance,
+      createdAt: "",
+    };
+    if (kind === "modify") {
+      // same company/track — required by the server for record-keeping, not user-editable here
+      base.targetCompany = holding.manufacturer;
+      base.targetTrack = holding.track;
+      base.beforeSum = undefined;
+    }
+    setDraft(base);
+    setOpen(true);
+  };
+
+  const closeAndClear = () => {
     setOpen(false);
     if (existing) void remove(client.id, id).catch(() => {});
-    setDraft({ ...draft, targetCompany: "", targetTrack: "" });
+    setDraft({
+      id,
+      productType: holding.product_type,
+      kind: "transfer",
+      sourceCompany: holding.manufacturer,
+      sourcePolisaNumber: holding.polisa_number,
+      sourceBalance: holding.balance,
+      createdAt: "",
+    });
   };
 
   return (
@@ -156,29 +274,59 @@ function HoldingRow({
           </div>
         </div>
         {!open ? (
-          <button
-            onClick={() => setOpen(true)}
-            className="inline-flex shrink-0 items-center gap-1.5 rounded-lg bg-cyan-50 px-2.5 py-1.5 text-[12px] font-medium text-cyan-700 hover:bg-cyan-100"
-          >
-            <ArrowLeftRight className="size-3.5" /> נייד
-          </button>
+          <div className="flex shrink-0 items-center gap-1">
+            {(["transfer", "modify", "cancel"] as const).map((k) => {
+              const meta = KIND_META[k];
+              const Icon = meta.icon;
+              return (
+                <button
+                  key={k}
+                  onClick={() => pickKind(k)}
+                  title={meta.label}
+                  className="inline-flex items-center gap-1 rounded-lg bg-slate-50 px-2 py-1.5 text-[11px] font-medium text-slate-600 hover:bg-cyan-50 hover:text-cyan-700"
+                >
+                  <Icon className="size-3.5" /> {meta.label}
+                </button>
+              );
+            })}
+          </div>
         ) : (
           <button
-            onClick={cancel}
+            onClick={closeAndClear}
             className="grid size-8 shrink-0 place-items-center rounded-lg text-slate-400 hover:bg-slate-100 hover:text-slate-600"
-            title="בטל ניוד"
+            title="בטל פעולה"
           >
             <X className="size-4" />
           </button>
         )}
       </div>
 
-      {open && (
-        <div className="mt-3 border-t border-slate-100 pt-3">
-          <div className="mb-2 text-[11px] text-slate-500">
-            מנייד מ־<span className="font-medium text-slate-700">{holding.manufacturer}</span> אל:
-          </div>
-          <TargetFields draft={draft} onChange={patch} />
+      {open && draft.kind !== "new" && (
+        <div className="mt-3 space-y-3 border-t border-slate-100 pt-3">
+          {draft.kind === "transfer" && (
+            <>
+              <div className="text-[11px] text-slate-500">
+                מנייד מ־<span className="font-medium text-slate-700">{holding.manufacturer}</span> אל:
+              </div>
+              <TargetFields draft={draft} onChange={patch} />
+              {hasCalculatorSupport(draft.productType, draft.targetCompany) && (
+                <PremiumSuggestButton draft={draft} onApply={(p) => patch({ monthlyPremium: p })} />
+              )}
+              <ResponsibilityPicker
+                value={draft.cancellationResponsibility}
+                onChange={(v) => patch({ cancellationResponsibility: v })}
+              />
+            </>
+          )}
+          {draft.kind === "modify" && (
+            <ModifyFields draft={draft} onChange={patch} />
+          )}
+          {draft.kind === "cancel" && (
+            <ResponsibilityPicker
+              value={draft.cancellationResponsibility}
+              onChange={(v) => patch({ cancellationResponsibility: v })}
+            />
+          )}
         </div>
       )}
     </div>
@@ -194,9 +342,6 @@ function NewProductCard({ client }: { client: Client }) {
     id,
     productType: "",
     kind: "new",
-    targetCompany: "",
-    targetTrack: "",
-    monthlyPremium: undefined,
     createdAt: "",
   });
 
@@ -230,15 +375,48 @@ function NewProductCard({ client }: { client: Client }) {
         />
       </div>
       <TargetFields draft={draft} onChange={patch} />
+      {hasCalculatorSupport(draft.productType, draft.targetCompany) && (
+        <div className="mt-2">
+          <PremiumSuggestButton draft={draft} onApply={(p) => patch({ monthlyPremium: p })} />
+        </div>
+      )}
     </div>
+  );
+}
+
+/**
+ * Shows a "חשב פרמיה" button when the calculator has placeholder-tariff
+ * coverage for this product/company — see domain/premiumCalculator.ts for
+ * the explicit disclaimer that these are estimates, not real insurer rates.
+ */
+function PremiumSuggestButton({
+  draft,
+  onApply,
+}: {
+  draft: Pick<ProductAction, "productType" | "targetCompany" | "sourceBalance">;
+  onApply: (premium: number) => void;
+}) {
+  const result = calculatePremium({
+    productType: draft.productType,
+    company: draft.targetCompany,
+    sumInsured: draft.sourceBalance,
+  });
+  if (!result) return null;
+  return (
+    <button
+      type="button"
+      onClick={() => onApply(result.monthlyPremium)}
+      className="inline-flex items-center gap-1.5 rounded-lg border border-dashed border-cyan-400/50 bg-cyan-50/50 px-2.5 py-1.5 text-[11px] text-cyan-700 hover:bg-cyan-100/60"
+      title="אומדן בלבד — מבוסס על טבלת תעריפים לדוגמה, לא תעריף רשמי מהחברה"
+    >
+      חשב פרמיה (אומדן) → {formatCurrency(result.monthlyPremium)}/חודש
+    </button>
   );
 }
 
 export function ProductActionsPanel({ client }: { client: Client }) {
   const holdings = client.mislaka?.polisot ?? [];
-  const newActions = (client.productActions ?? []).filter(
-    (a) => a.kind === "new",
-  );
+  const newActions = (client.productActions ?? []).filter((a) => a.kind === "new");
   const [addingNew, setAddingNew] = useState(false);
 
   return (
@@ -247,8 +425,8 @@ export function ProductActionsPanel({ client }: { client: Client }) {
         <Sparkles className="size-3.5" /> ניוד ופתיחת מוצרים — לכל מוצר בנפרד
       </div>
       <p className="mb-3 text-[11px] text-slate-500">
-        עבור כל מוצר קיים בחר האם לנייד אותו לחברה אחרת, או השאר ללא שינוי.
-        ניתן גם לפתוח מוצר חדש שלא קיים היום.
+        עבור כל מוצר קיים בחר אם לנייד, לשנות כיסויים, לבטל, או להשאיר ללא
+        שינוי. ניתן גם לפתוח מוצר חדש שלא קיים היום.
       </p>
 
       <div className="space-y-2">
@@ -271,13 +449,7 @@ export function ProductActionsPanel({ client }: { client: Client }) {
   );
 }
 
-function ExistingNewCard({
-  client,
-  action,
-}: {
-  client: Client;
-  action: ProductAction;
-}) {
+function ExistingNewCard({ client, action }: { client: Client; action: ProductAction }) {
   const save = useClients((s) => s.saveProductAction);
   const remove = useClients((s) => s.removeProductAction);
   const [draft, setDraft] = useState(action);

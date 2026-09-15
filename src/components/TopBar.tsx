@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { useNavigate, Link } from "react-router-dom";
 import { motion, AnimatePresence } from "motion/react";
-import { Bell, Search, Plus, ShieldCheck, BarChart3 } from "lucide-react";
+import { Bell, Search, Plus, ShieldCheck, BarChart3, FileText, Settings } from "lucide-react";
 import { useClients } from "@/store/useClients";
 import { Button } from "./ui/Button";
 import { timeAgo, cn } from "@/lib/utils";
@@ -130,10 +130,25 @@ export function TopBar({ onAdd }: { onAdd: () => void }) {
         </div>
 
         <Link
+          to="/documents"
+          className="hidden h-9 items-center gap-1.5 rounded-xl border border-line bg-surface/60 px-3 text-[13px] font-medium text-slate-700 hover:border-zinc-600 md:inline-flex"
+        >
+          <FileText className="size-4" /> מסמכים
+        </Link>
+
+        <Link
           to="/performance"
           className="inline-flex h-9 items-center gap-1.5 rounded-xl border border-line bg-surface/60 px-3 text-[13px] font-medium text-slate-700 hover:border-zinc-600"
         >
           <BarChart3 className="size-4" /> ביצועים
+        </Link>
+
+        <Link
+          to="/settings"
+          className="grid size-9 shrink-0 place-items-center rounded-xl border border-line bg-surface/60 text-slate-700 hover:border-zinc-600"
+          title="הגדרות"
+        >
+          <Settings className="size-4" />
         </Link>
 
         <Button size="sm" onClick={onAdd}>

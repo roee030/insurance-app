@@ -96,16 +96,40 @@ export function SignPage() {
                       <div className="mb-1.5 font-medium text-slate-800">
                         {a.productType}
                         <span className="mr-1 text-[11px] font-normal text-slate-500">
-                          {a.kind === "transfer"
-                            ? `· ניוד מ־${a.sourceCompany}`
-                            : "· פתיחה חדשה"}
+                          {a.kind === "transfer" && `· ניוד מ־${a.sourceCompany}`}
+                          {a.kind === "new" && "· פתיחה חדשה"}
+                          {a.kind === "modify" && `· שינוי כיסויים ב־${a.sourceCompany}`}
+                          {a.kind === "cancel" && `· ביטול פוליסה ב־${a.sourceCompany}`}
                         </span>
                       </div>
-                      <div className="grid grid-cols-3 gap-2 text-[12px]">
-                        <Field label="אל" value={a.targetCompany} />
-                        <Field label="מסלול" value={a.targetTrack} />
-                        <Field label="פרמיה" value={ils(a.monthlyPremium)} />
-                      </div>
+                      {a.kind === "modify" ? (
+                        <div className="grid grid-cols-3 gap-2 text-[12px]">
+                          <Field label="סכום לפני" value={ils(a.beforeSum)} />
+                          <Field label="סכום אחרי" value={ils(a.afterSum)} />
+                          <Field label="עלות אחרי" value={ils(a.monthlyPremium)} />
+                        </div>
+                      ) : a.kind === "cancel" ? (
+                        <div className="grid grid-cols-3 gap-2 text-[12px]">
+                          <Field
+                            label="באחריות ביטול"
+                            value={
+                              a.cancellationResponsibility === "agent"
+                                ? "הסוכן"
+                                : a.cancellationResponsibility === "new_company"
+                                  ? "החברה החדשה"
+                                  : a.cancellationResponsibility === "client"
+                                    ? "הלקוח"
+                                    : undefined
+                            }
+                          />
+                        </div>
+                      ) : (
+                        <div className="grid grid-cols-3 gap-2 text-[12px]">
+                          <Field label="אל" value={a.targetCompany} />
+                          <Field label="מסלול" value={a.targetTrack} />
+                          <Field label="פרמיה" value={ils(a.monthlyPremium)} />
+                        </div>
+                      )}
                     </div>
                   ))}
                 </div>
@@ -155,11 +179,11 @@ function Centered({ children }: { children: React.ReactNode }) {
   );
 }
 
-function Field({ label, value }: { label: string; value: string }) {
+function Field({ label, value }: { label: string; value?: string }) {
   return (
     <div>
       <div className="text-[11px] text-slate-500">{label}</div>
-      <div className="font-medium text-slate-800">{value}</div>
+      <div className="font-medium text-slate-800">{value ?? "—"}</div>
     </div>
   );
 }

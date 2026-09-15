@@ -5,11 +5,19 @@
  * two transparently — every other file in the app is unaware this exists.
  */
 import type {
+  AgentProfile,
+  AnswerBankEntry,
   Client,
+  Discount,
+  DocSignView,
+  DocumentField,
   NeedsAssessment,
+  PrimaryManufacturer,
   ProductAction,
   Report,
   ReportSnapshot,
+  Settings,
+  SignDocument,
   SignView,
   Submission,
 } from "@/domain/types";
@@ -53,6 +61,79 @@ let clients: Client[] = loadClients();
 
 const AGENT_NAME = "יואל תורגמן";
 const AGENCY_NAME = "תורגמן סוכנות לביטוח";
+const DISCLOSURE_THRESHOLD_PERCENT = 40;
+
+const SETTINGS_KEY = "insurance-app-demo-settings-v1";
+const emptySettings: Settings = {
+  agentProfile: {},
+  answerBank: [],
+  discounts: [],
+  manufacturers: [],
+};
+
+function loadSettings(): Settings {
+  try {
+    const raw = localStorage.getItem(SETTINGS_KEY);
+    if (raw) return { ...emptySettings, ...JSON.parse(raw) };
+  } catch {
+    // corrupt/old-shape storage — fall through to empty
+  }
+  return structuredClone(emptySettings);
+}
+
+function persistSettings() {
+  try {
+    localStorage.setItem(SETTINGS_KEY, JSON.stringify(settings));
+  } catch {
+    // storage full/unavailable — demo still works in-memory for this tab
+  }
+}
+
+let settings: Settings = loadSettings();
+
+const DOCS_KEY = "insurance-app-demo-documents-v1";
+
+function loadDocuments(): SignDocument[] {
+  try {
+    const raw = localStorage.getItem(DOCS_KEY);
+    if (raw) {
+      const parsed = JSON.parse(raw);
+      if (Array.isArray(parsed)) return parsed;
+    }
+  } catch {
+    // corrupt/old-shape storage — fall through to empty
+  }
+  return [];
+}
+
+function persistDocuments() {
+  try {
+    localStorage.setItem(DOCS_KEY, JSON.stringify(documents));
+  } catch {
+    // storage full (base64 PDFs can be large in a demo browser) — in-memory only for this tab
+  }
+}
+
+let documents: SignDocument[] = loadDocuments();
+
+function findDoc(id: string): SignDocument | undefined {
+  return documents.find((d) => d.id === id);
+}
+
+function docSignView(d: SignDocument): DocSignView {
+  return {
+    id: d.id,
+    title: d.title,
+    fileName: d.fileName,
+    fields: d.fields,
+    token: d.token,
+    createdAt: d.createdAt,
+    sentAt: d.sentAt,
+    completedAt: d.completedAt,
+    values: d.values,
+    signerName: d.signerName,
+  };
+}
 
 function find(id: string): Client | undefined {
   return clients.find((c) => c.id === id);
@@ -74,8 +155,10 @@ function buildSnapshot(client: Client): ReportSnapshot {
   return {
     clientName: `${client.firstName} ${client.lastName}`,
     personId: client.personId,
-    agentName: AGENT_NAME,
-    agencyName: AGENCY_NAME,
+    agentName: settings.agentProfile.agentName || AGENT_NAME,
+    agencyName: settings.agentProfile.agencyName || AGENCY_NAME,
+    agentLicenseNumber: settings.agentProfile.licenseNumber,
+    agentBio: settings.agentProfile.bio,
     generatedAt: new Date().toISOString(),
     holdings,
     totals: {
@@ -85,6 +168,9 @@ function buildSnapshot(client: Client): ReportSnapshot {
     },
     productActions: client.productActions,
     needsAssessment: client.needsAssessment,
+    disclosedManufacturers: settings.manufacturers.filter(
+      (m) => m.commissionPercent >= DISCLOSURE_THRESHOLD_PERCENT,
+    ),
   };
 }
 
@@ -252,5 +338,123 @@ export const demoDb = {
       persist();
     }
     return signView(find(c.id)!);
+  },
+
+  getSettings: () => settings,
+
+  saveAgentProfile: (profile: AgentProfile) => {
+    settings.agentProfile = { ...settings.agentProfile, ...profile };
+    persistSettings();
+    return settings;
+  },
+
+  saveAnswerBankEntry: (entry: AnswerBankEntry) => {
+    const idx = settings.answerBank.findIndex((e) => e.id === entry.id);
+    if (idx >= 0) settings.answerBank[idx] = entry;
+    else settings.answerBank.push(entry);
+    persistSettings();
+    return settings;
+  },
+
+  deleteAnswerBankEntry: (id: string) => {
+    settings.answerBank = settings.answerBank.filter((e) => e.id !== id);
+    persistSettings();
+    return settings;
+  },
+
+  saveDiscount: (discount: Discount) => {
+    const idx = settings.discounts.findIndex((e) => e.id === discount.id);
+    if (idx >= 0) settings.discounts[idx] = discount;
+    else settings.discounts.push(discount);
+    persistSettings();
+    return settings;
+  },
+
+  deleteDiscount: (id: string) => {
+    settings.discounts = settings.discounts.filter((e) => e.id !== id);
+    persistSettings();
+    return settings;
+  },
+
+  saveManufacturer: (m: PrimaryManufacturer) => {
+    const idx = settings.manufacturers.findIndex((e) => e.id === m.id);
+    if (idx >= 0) settings.manufacturers[idx] = m;
+    else settings.manufacturers.push(m);
+    persistSettings();
+    return settings;
+  },
+
+  deleteManufacturer: (id: string) => {
+    settings.manufacturers = settings.manufacturers.filter((e) => e.id !== id);
+    persistSettings();
+    return settings;
+  },
+
+  listDocuments: () => documents.map(({ fileContent: _fileContent, ...rest }) => rest),
+
+  uploadDocument: (input: {
+    title: string;
+    fileName: string;
+    fileContent: string;
+    clientId?: string;
+  }) => {
+    const doc: SignDocument = {
+      id: crypto.randomUUID(),
+      title: input.title,
+      fileName: input.fileName,
+      fileContent: input.fileContent,
+      fields: [],
+      clientId: input.clientId,
+      token: crypto.randomUUID().replace(/-/g, "").slice(0, 14),
+      createdAt: new Date().toISOString(),
+    };
+    documents = [doc, ...documents];
+    persistDocuments();
+    const { fileContent: _fileContent, ...rest } = doc;
+    return rest;
+  },
+
+  saveDocumentFields: (id: string, fields: DocumentField[]) => {
+    const d = findDoc(id);
+    if (!d) return null;
+    d.fields = fields;
+    persistDocuments();
+    const { fileContent: _fileContent, ...rest } = d;
+    return rest;
+  },
+
+  sendDocument: (id: string) => {
+    const d = findDoc(id);
+    if (!d) return null;
+    d.sentAt = new Date().toISOString();
+    persistDocuments();
+    const { fileContent: _fileContent, ...rest } = d;
+    return rest;
+  },
+
+  deleteDocument: (id: string) => {
+    documents = documents.filter((d) => d.id !== id);
+    persistDocuments();
+  },
+
+  getDocSign: (token: string): DocSignView | null => {
+    const d = documents.find((x) => x.token === token);
+    return d ? docSignView(d) : null;
+  },
+
+  submitDocSign: (
+    token: string,
+    values: Record<string, string | boolean>,
+    signerName: string,
+  ): DocSignView | null => {
+    const d = documents.find((x) => x.token === token);
+    if (!d) return null;
+    if (!d.completedAt) {
+      d.values = values;
+      d.signerName = signerName;
+      d.completedAt = new Date().toISOString();
+      persistDocuments();
+    }
+    return docSignView(d);
   },
 };

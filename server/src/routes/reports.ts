@@ -1,11 +1,14 @@
 import { Router } from "express";
 import { getDB, updateDB } from "../db.js";
-import type { Client, PolisaSummary, Report, ReportSnapshot } from "../types.js";
+import type { Client, PolisaSummary, Report, ReportSnapshot, Settings } from "../types.js";
 
 export const reportsRouter = Router();
 
-const AGENT_NAME = process.env.AGENT_NAME ?? "יואל תורגמן";
-const AGENCY_NAME = process.env.AGENCY_NAME ?? "תורגמן סוכנות לביטוח";
+const DEFAULT_AGENT_NAME = process.env.AGENT_NAME ?? "יואל תורגמן";
+const DEFAULT_AGENCY_NAME = process.env.AGENCY_NAME ?? "תורגמן סוכנות לביטוח";
+
+/** Disclosure threshold per חוזר הצירוף — commission from one manufacturer exceeding this % of a branch requires disclosure. */
+const DISCLOSURE_THRESHOLD_PERCENT = 40;
 
 function weightedAvgFee(holdings: PolisaSummary[]): number {
   const total = holdings.reduce((s, h) => s + (h.balance ?? 0), 0);
@@ -17,14 +20,16 @@ function weightedAvgFee(holdings: PolisaSummary[]): number {
   return Math.round((weighted / total) * 100) / 100;
 }
 
-function buildSnapshot(client: Client): ReportSnapshot {
+function buildSnapshot(client: Client, settings: Settings): ReportSnapshot {
   const holdings = client.mislaka?.polisot ?? [];
   const accumulation = holdings.reduce((s, h) => s + (h.balance ?? 0), 0);
   return {
     clientName: `${client.firstName} ${client.lastName}`,
     personId: client.personId,
-    agentName: AGENT_NAME,
-    agencyName: AGENCY_NAME,
+    agentName: settings.agentProfile.agentName || DEFAULT_AGENT_NAME,
+    agencyName: settings.agentProfile.agencyName || DEFAULT_AGENCY_NAME,
+    agentLicenseNumber: settings.agentProfile.licenseNumber,
+    agentBio: settings.agentProfile.bio,
     generatedAt: new Date().toISOString(),
     holdings,
     totals: {
@@ -34,6 +39,9 @@ function buildSnapshot(client: Client): ReportSnapshot {
     },
     productActions: client.productActions,
     needsAssessment: client.needsAssessment,
+    disclosedManufacturers: settings.manufacturers.filter(
+      (m) => m.commissionPercent >= DISCLOSURE_THRESHOLD_PERCENT,
+    ),
   };
 }
 
@@ -47,7 +55,7 @@ reportsRouter.post("/clients/:id/reports", async (req, res) => {
       id: crypto.randomUUID().replace(/-/g, "").slice(0, 12),
       version,
       createdAt: new Date().toISOString(),
-      snapshot: buildSnapshot(client),
+      snapshot: buildSnapshot(client, db.settings),
     };
     client.reports = [report, ...(client.reports ?? [])];
     return report;

@@ -48,11 +48,35 @@ export interface MislakaResult {
 
 export type MaritalStatus = "single" | "married" | "divorced" | "widowed";
 
+export interface Spouse {
+  firstName?: string;
+  lastName?: string;
+  birthDate?: string;
+  gender?: "male" | "female";
+  smoker?: boolean;
+}
+
+export interface Child {
+  id: string;
+  firstName: string;
+  birthDate?: string;
+}
+
+export type BeneficiaryType = "specific" | "legal_heirs";
+
+export interface Beneficiary {
+  type: BeneficiaryType;
+  relation?: string;
+  name?: string;
+}
+
 /**
  * The data the agent collects WITH the client after the Mislaka returns —
  * completes what gets "planted" onto the forms + the justification document
  * (מסמך הנמקה). Known fields (name/id/birthdate) come from the Mislaka;
- * these are the ones that must be confirmed/collected live.
+ * these are the ones that must be confirmed/collected live. Extended per
+ * docs/sms-feature-gap-analysis.md to cover the full בירור צרכים SMS performs
+ * across many client-record tabs — kept here as one consolidated record.
  */
 export interface NeedsAssessment {
   maritalStatus?: MaritalStatus;
@@ -61,6 +85,24 @@ export interface NeedsAssessment {
   timeHorizon?: string; //     אופק ההשקעה
   riskLevel?: 1 | 2 | 3 | 4 | 5; // רמת סיכון
   justification?: string; //   מלל חופשי / הנמקה
+
+  smoker?: boolean;
+  cigarettesPerDay?: number;
+  heightCm?: number;
+  weightKg?: number;
+  dangerousHobbies?: string;
+
+  spouse?: Spouse;
+  children?: Child[];
+
+  mortgageAmount?: number;
+  otherLoansAmount?: number;
+  additionalDependents?: string;
+
+  beneficiary?: Beneficiary;
+
+  notes?: string;
+
   updatedAt?: string;
 }
 
@@ -83,29 +125,41 @@ export interface Submission {
   note?: string;
 }
 
-export type ProductActionKind = "transfer" | "new";
+export type ProductActionKind = "transfer" | "new" | "modify" | "cancel";
+
+/** Who is responsible for cancelling the replaced/cancelled policy — a mandatory disclosure per חוזר הצירוף whenever an existing policy is replaced or dropped. */
+export type CancellationResponsibility = "agent" | "new_company" | "client";
 
 /**
  * A decision made on ONE product, taken independently for each holding the
  * Mislaka returned (פנסיה / קרן השתלמות / ביטוח בריאות / גמל להשקעה ...).
- * "transfer" moves an existing policy (ניוד) to a new company/track;
- * "new" opens a fresh policy that didn't exist before. Some fields are
- * planted automatically from the Mislaka holding (source*), the rest —
- * the target — is filled/edited by the agent and lands on the signature form.
+ * - "transfer" (ניוד/שחלוף): moves an existing policy to a new company/track.
+ * - "new" (פתיחה חדשה): opens a fresh policy that didn't exist before.
+ * - "modify" (שינוי כיסויים): changes sum insured/premium on an existing
+ *   policy without switching companies — targetCompany stays the source
+ *   company; the before/after fields capture the comparison shown in the report.
+ * - "cancel" (ביטול): drops an existing policy with no replacement —
+ *   targetCompany/targetTrack are not applicable for this kind.
  */
 export interface ProductAction {
   id: string;
   productType: string;
   kind: ProductActionKind;
-  /** Populated for "transfer" — the existing holding being moved. */
+  /** Populated for "transfer"/"modify"/"cancel" — the existing holding acted on. */
   sourceCompany?: string;
   sourcePolisaNumber?: string;
   sourceBalance?: number;
-  targetCompany: string;
-  targetTrack: string;
+  /** Required for transfer/new/modify; absent for "cancel" (nothing to move to). */
+  targetCompany?: string;
+  targetTrack?: string;
   monthlyPremium?: number;
   note?: string;
   createdAt: string;
+
+  cancellationResponsibility?: CancellationResponsibility;
+  beforeSum?: number;
+  afterSum?: number;
+  beforePremium?: number;
 }
 
 export interface Client {
@@ -147,6 +201,8 @@ export interface ReportSnapshot {
   personId: string;
   agentName: string;
   agencyName: string;
+  agentLicenseNumber?: string;
+  agentBio?: string;
   generatedAt: string;
   holdings: PolisaSummary[];
   totals: {
@@ -156,6 +212,8 @@ export interface ReportSnapshot {
   };
   productActions?: ProductAction[];
   needsAssessment?: NeedsAssessment;
+  /** Producers requiring mandatory disclosure (>40% commission) — snapshotted at report time so a later settings edit doesn't retroactively change a frozen report. */
+  disclosedManufacturers?: PrimaryManufacturer[];
 }
 
 export interface Report {
@@ -165,6 +223,108 @@ export interface Report {
   snapshot: ReportSnapshot;
 }
 
+/** A reusable justification/answer snippet (בנק תשובות) — inserted into the needs-assessment justification text instead of retyping the same regulatory phrasing each time. */
+export interface AnswerBankEntry {
+  id: string;
+  title: string;
+  text: string;
+  /** Optional scoping — leave unset for a general-purpose entry. */
+  productType?: string;
+  company?: string;
+}
+
+export interface DiscountTier {
+  id: string;
+  /** Months from policy start this tier applies from. */
+  fromMonth: number;
+  /** Months from policy start this tier applies until — open-ended if unset. */
+  toMonth?: number;
+  percent: number;
+}
+
+export type DiscountScope = "personal" | "system";
+
+/** A staged discount (ניהול הנחות) — either the agent's personal discount or a system/company-wide one, applied in month-based tiers. */
+export interface Discount {
+  id: string;
+  name: string;
+  scope: DiscountScope;
+  productType?: string;
+  company?: string;
+  tiers: DiscountTier[];
+  note?: string;
+}
+
+/** A producer whose commission exceeds the disclosure threshold — mandatory disclosure per חוזר הצירוף (יצרנים עיקריים) whenever commission from one manufacturer in a branch exceeds 40%. */
+export interface PrimaryManufacturer {
+  id: string;
+  company: string;
+  branch: string;
+  commissionPercent: number;
+}
+
+export interface AgentProfile {
+  agentName?: string;
+  agencyName?: string;
+  licenseNumber?: string;
+  bio?: string;
+  logoUrl?: string;
+}
+
+/** Single-tenant settings — this app serves one agent, so there's exactly one of these. */
+export interface Settings {
+  agentProfile: AgentProfile;
+  answerBank: AnswerBankEntry[];
+  discounts: Discount[];
+  manufacturers: PrimaryManufacturer[];
+}
+
+/**
+ * VSign-style remote-signing foundation (תכין קרקע — explicitly NOT the full
+ * feature). A generic PDF the agent uploads, with a flat list of fields the
+ * client must fill/sign. What's deferred: visual placement of fields on the
+ * actual PDF page canvas, and burning the filled values back into the PDF
+ * pixels — the client-facing page instead just lists the required fields
+ * and lets them provide values, no PDF rendering yet.
+ */
+export type DocFieldType = "signature" | "text" | "checkbox";
+
+/** Where a field's value comes from — "manual" means the client types it themselves. */
+export type DocFieldSource =
+  | "manual"
+  | "client_name"
+  | "client_id"
+  | "agent_name"
+  | "date";
+
+export interface DocumentField {
+  id: string;
+  type: DocFieldType;
+  label: string;
+  source: DocFieldSource;
+  required: boolean;
+}
+
+export interface SignDocument {
+  id: string;
+  title: string;
+  fileName: string;
+  /** Base64-encoded PDF bytes. Stored inline in the JSON db for now — fine
+   *  at foundation scale, not meant for large-volume production use. */
+  fileContent: string;
+  fields: DocumentField[];
+  clientId?: string;
+  /** Used in the public /docsign/:token link. */
+  token: string;
+  createdAt: string;
+  sentAt?: string;
+  completedAt?: string;
+  values?: Record<string, string | boolean>;
+  signerName?: string;
+}
+
 export interface DB {
   clients: Client[];
+  settings: Settings;
+  documents: SignDocument[];
 }

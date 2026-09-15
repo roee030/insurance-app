@@ -82,7 +82,13 @@ export function ReportPage() {
             </div>
             <p className="mt-1 text-[13px] text-slate-500">
               הסוכן {s.agentName}
+              {s.agentLicenseNumber && ` · רישיון ${s.agentLicenseNumber}`}
             </p>
+            {s.agentBio && (
+              <p className="mt-1 max-w-xs text-[11px] leading-relaxed text-slate-400">
+                {s.agentBio}
+              </p>
+            )}
           </div>
           <div className="text-left">
             <h1 className="text-lg font-bold text-slate-900">דוח תיק פנסיוני</h1>
@@ -184,19 +190,39 @@ export function ReportPage() {
                   <div className="mb-2 text-[13px] font-semibold text-slate-800">
                     {a.productType}
                     <span className="mr-1.5 text-[11px] font-normal text-slate-500">
-                      {a.kind === "transfer"
-                        ? `· ניוד מ־${a.sourceCompany}`
-                        : "· פתיחת מוצר חדש"}
+                      {a.kind === "transfer" && `· ניוד מ־${a.sourceCompany}`}
+                      {a.kind === "new" && "· פתיחת מוצר חדש"}
+                      {a.kind === "modify" && `· שינוי כיסויים ב־${a.sourceCompany}`}
+                      {a.kind === "cancel" && `· ביטול פוליסה ב־${a.sourceCompany}`}
                     </span>
                   </div>
-                  <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
-                    <Field label="חברה" value={a.targetCompany} />
-                    <Field label="מסלול" value={a.targetTrack} />
-                    <Field label="פרמיה חודשית" value={ils(a.monthlyPremium)} />
-                    {a.sourceBalance != null && (
-                      <Field label="צבירה מנוידת" value={ils(a.sourceBalance)} />
-                    )}
-                  </div>
+                  {a.kind === "modify" ? (
+                    <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+                      <Field label="סכום לפני" value={ils(a.beforeSum)} />
+                      <Field label="סכום אחרי" value={ils(a.afterSum)} />
+                      <Field label="עלות לפני" value={ils(a.beforePremium)} />
+                      <Field label="עלות אחרי" value={ils(a.monthlyPremium)} />
+                    </div>
+                  ) : a.kind === "cancel" ? (
+                    <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+                      {a.sourceBalance != null && (
+                        <Field label="צבירה בפוליסה המבוטלת" value={ils(a.sourceBalance)} />
+                      )}
+                      <Field
+                        label="באחריות ביטול"
+                        value={cancellationLabel(a.cancellationResponsibility)}
+                      />
+                    </div>
+                  ) : (
+                    <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+                      <Field label="חברה" value={a.targetCompany} />
+                      <Field label="מסלול" value={a.targetTrack} />
+                      <Field label="פרמיה חודשית" value={ils(a.monthlyPremium)} />
+                      {a.sourceBalance != null && (
+                        <Field label="צבירה מנוידת" value={ils(a.sourceBalance)} />
+                      )}
+                    </div>
+                  )}
                   {a.note && (
                     <p className="mt-3 border-t border-emerald-200 pt-3 text-[13px] leading-relaxed text-slate-700">
                       {a.note}
@@ -246,6 +272,29 @@ export function ReportPage() {
               </div>
             </section>
           )}
+
+        {/* mandatory disclosure — יצרנים עיקריים, per חוזר הצירוף */}
+        {s.disclosedManufacturers && s.disclosedManufacturers.length > 0 && (
+          <section className="mt-7">
+            <h2 className="mb-3 text-sm font-bold text-slate-900">
+              גילוי נאות — יצרנים עיקריים
+            </h2>
+            <div className="rounded-xl border border-amber-200 bg-amber-50 p-4 text-[12px] leading-relaxed text-amber-900">
+              <p className="mb-2">
+                בהתאם לחובת הגילוי הרגולטורית, סוכן זה מקבל למעלה מ־40% מהיקף
+                העמלות בענף מסוים מהיצרנים הבאים:
+              </p>
+              <ul className="list-inside list-disc space-y-1">
+                {s.disclosedManufacturers.map((m) => (
+                  <li key={m.id}>
+                    <span className="font-medium">{m.company}</span> — {m.branch} (
+                    {m.commissionPercent}% מהעמלות בענף)
+                  </li>
+                ))}
+              </ul>
+            </div>
+          </section>
+        )}
 
         {/* disclaimer */}
         <footer className="mt-8 flex items-start gap-2 border-t border-slate-200 pt-5 text-[11px] leading-relaxed text-slate-400">
@@ -301,11 +350,18 @@ function Stat({
   );
 }
 
-function Field({ label, value }: { label: string; value: string }) {
+function Field({ label, value }: { label: string; value?: string }) {
   return (
     <div>
       <div className="text-[11px] text-slate-500">{label}</div>
-      <div className="text-[13px] font-medium text-slate-800">{value}</div>
+      <div className="text-[13px] font-medium text-slate-800">{value ?? "—"}</div>
     </div>
   );
+}
+
+function cancellationLabel(v?: "agent" | "new_company" | "client"): string | undefined {
+  if (v === "agent") return "הסוכן";
+  if (v === "new_company") return "החברה החדשה";
+  if (v === "client") return "הלקוח";
+  return undefined;
 }

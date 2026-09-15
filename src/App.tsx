@@ -17,10 +17,19 @@ const ReportPage = lazy(() =>
 const SignPage = lazy(() =>
   import("./pages/SignPage").then((m) => ({ default: m.SignPage })),
 );
+const DocSignPage = lazy(() =>
+  import("./pages/DocSignPage").then((m) => ({ default: m.DocSignPage })),
+);
 const AgentDashboardPage = lazy(() =>
   import("./pages/AgentDashboardPage").then((m) => ({
     default: m.AgentDashboardPage,
   })),
+);
+const SettingsPage = lazy(() =>
+  import("./pages/SettingsPage").then((m) => ({ default: m.SettingsPage })),
+);
+const DocumentsPage = lazy(() =>
+  import("./pages/DocumentsPage").then((m) => ({ default: m.DocumentsPage })),
 );
 
 /** Shell for the internal CRM pages — owns polling + the add-client dialog. */
@@ -56,12 +65,15 @@ export default function App() {
         {/* standalone, client-facing, public */}
         <Route path="/report/:reportId" element={<ReportPage />} />
         <Route path="/sign/:token" element={<SignPage />} />
+        <Route path="/docsign/:token" element={<DocSignPage />} />
 
         {/* internal CRM */}
         <Route element={<CrmLayout />}>
           <Route path="/" element={<DashboardPage />} />
           <Route path="/client/:id" element={<ClientProfilePage />} />
           <Route path="/performance" element={<AgentDashboardPage />} />
+          <Route path="/settings" element={<SettingsPage />} />
+          <Route path="/documents" element={<DocumentsPage />} />
         </Route>
       </Routes>
     </Suspense>

@@ -79,18 +79,39 @@ clientsRouter.post("/", async (req, res) => {
   res.status(201).json(client);
 });
 
-const productActionSchema = z.object({
-  id: z.string().min(1),
-  productType: z.string().min(1),
-  kind: z.enum(["transfer", "new"]),
-  sourceCompany: z.string().optional(),
-  sourcePolisaNumber: z.string().optional(),
-  sourceBalance: z.number().optional(),
-  targetCompany: z.string().min(1),
-  targetTrack: z.string().min(1),
-  monthlyPremium: z.number().optional(),
-  note: z.string().optional(),
-});
+const productActionSchema = z
+  .object({
+    id: z.string().min(1),
+    productType: z.string().min(1),
+    kind: z.enum(["transfer", "new", "modify", "cancel"]),
+    sourceCompany: z.string().optional(),
+    sourcePolisaNumber: z.string().optional(),
+    sourceBalance: z.number().optional(),
+    // Required for transfer/new/modify; not applicable for cancel — enforced below.
+    targetCompany: z.string().optional(),
+    targetTrack: z.string().optional(),
+    monthlyPremium: z.number().optional(),
+    note: z.string().optional(),
+    cancellationResponsibility: z.enum(["agent", "new_company", "client"]).optional(),
+    beforeSum: z.number().optional(),
+    afterSum: z.number().optional(),
+    beforePremium: z.number().optional(),
+  })
+  .superRefine((data, ctx) => {
+    if (["transfer", "new", "modify"].includes(data.kind) && !data.targetCompany) {
+      ctx.addIssue({ code: "custom", path: ["targetCompany"], message: "חברה יעד נדרשת" });
+    }
+    if (["transfer", "new", "modify"].includes(data.kind) && !data.targetTrack) {
+      ctx.addIssue({ code: "custom", path: ["targetTrack"], message: "מסלול יעד נדרש" });
+    }
+    if (["transfer", "cancel"].includes(data.kind) && !data.cancellationResponsibility) {
+      ctx.addIssue({
+        code: "custom",
+        path: ["cancellationResponsibility"],
+        message: "יש לציין באחריות מי ביטול הפוליסה הקיימת",
+      });
+    }
+  });
 
 /**
  * POST /api/clients/:id/product-actions — upsert ONE per-product decision
@@ -134,6 +155,26 @@ clientsRouter.delete("/:id/product-actions/:actionId", async (req, res) => {
   res.json(updated);
 });
 
+const spouseSchema = z.object({
+  firstName: z.string().optional(),
+  lastName: z.string().optional(),
+  birthDate: z.string().optional(),
+  gender: z.enum(["male", "female"]).optional(),
+  smoker: z.boolean().optional(),
+});
+
+const childSchema = z.object({
+  id: z.string().min(1),
+  firstName: z.string().min(1),
+  birthDate: z.string().optional(),
+});
+
+const beneficiarySchema = z.object({
+  type: z.enum(["specific", "legal_heirs"]),
+  relation: z.string().optional(),
+  name: z.string().optional(),
+});
+
 const needsSchema = z.object({
   maritalStatus: z.enum(["single", "married", "divorced", "widowed"]).optional(),
   employer: z.string().optional(),
@@ -147,6 +188,23 @@ const needsSchema = z.object({
     z.literal(5),
   ]).optional(),
   justification: z.string().optional(),
+
+  smoker: z.boolean().optional(),
+  cigarettesPerDay: z.number().min(0).optional(),
+  heightCm: z.number().min(0).optional(),
+  weightKg: z.number().min(0).optional(),
+  dangerousHobbies: z.string().optional(),
+
+  spouse: spouseSchema.optional(),
+  children: z.array(childSchema).optional(),
+
+  mortgageAmount: z.number().min(0).optional(),
+  otherLoansAmount: z.number().min(0).optional(),
+  additionalDependents: z.string().optional(),
+
+  beneficiary: beneficiarySchema.optional(),
+
+  notes: z.string().optional(),
 });
 
 /** POST /api/clients/:id/needs-assessment — save/merge needs-assessment data. */

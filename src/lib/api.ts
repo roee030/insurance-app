@@ -1,8 +1,16 @@
 import type {
+  AgentProfile,
+  AnswerBankEntry,
   Client,
+  Discount,
+  DocSignView,
+  DocumentField,
+  PrimaryManufacturer,
   ProductAction,
   Report,
   NeedsAssessment,
+  Settings,
+  SignDocument,
   SignView,
 } from "@/domain/types";
 import { demoDb } from "./demoDb";
@@ -150,5 +158,96 @@ export const api = {
       : req<SignView>(`/sign/${token}`, {
           method: "POST",
           body: JSON.stringify({ signerName }),
+        }),
+
+  getSettings: () =>
+    DEMO ? demo(() => demoDb.getSettings()) : req<Settings>("/settings"),
+
+  saveAgentProfile: (profile: AgentProfile) =>
+    DEMO
+      ? demo(() => demoDb.saveAgentProfile(profile))
+      : req<Settings>("/settings/agent-profile", {
+          method: "PUT",
+          body: JSON.stringify(profile),
+        }),
+
+  saveAnswerBankEntry: (entry: AnswerBankEntry) =>
+    DEMO
+      ? demo(() => demoDb.saveAnswerBankEntry(entry))
+      : req<Settings>("/settings/answer-bank", {
+          method: "POST",
+          body: JSON.stringify(entry),
+        }),
+
+  deleteAnswerBankEntry: (id: string) =>
+    DEMO
+      ? demo(() => demoDb.deleteAnswerBankEntry(id))
+      : req<Settings>(`/settings/answer-bank/${id}`, { method: "DELETE" }),
+
+  saveDiscount: (discount: Discount) =>
+    DEMO
+      ? demo(() => demoDb.saveDiscount(discount))
+      : req<Settings>("/settings/discounts", {
+          method: "POST",
+          body: JSON.stringify(discount),
+        }),
+
+  deleteDiscount: (id: string) =>
+    DEMO
+      ? demo(() => demoDb.deleteDiscount(id))
+      : req<Settings>(`/settings/discounts/${id}`, { method: "DELETE" }),
+
+  saveManufacturer: (m: PrimaryManufacturer) =>
+    DEMO
+      ? demo(() => demoDb.saveManufacturer(m))
+      : req<Settings>("/settings/manufacturers", {
+          method: "POST",
+          body: JSON.stringify(m),
+        }),
+
+  deleteManufacturer: (id: string) =>
+    DEMO
+      ? demo(() => demoDb.deleteManufacturer(id))
+      : req<Settings>(`/settings/manufacturers/${id}`, { method: "DELETE" }),
+
+  listDocuments: () =>
+    DEMO ? demo(() => demoDb.listDocuments()) : req<SignDocument[]>("/documents"),
+
+  uploadDocument: (input: { title: string; fileName: string; fileContent: string; clientId?: string }) =>
+    DEMO
+      ? demo(() => demoDb.uploadDocument(input), 400)
+      : req<SignDocument>("/documents", { method: "POST", body: JSON.stringify(input) }),
+
+  saveDocumentFields: (id: string, fields: DocumentField[]) =>
+    DEMO
+      ? demo(() => orThrow(demoDb.saveDocumentFields(id, fields)))
+      : req<SignDocument>(`/documents/${id}/fields`, {
+          method: "PUT",
+          body: JSON.stringify({ fields }),
+        }),
+
+  sendDocument: (id: string) =>
+    DEMO
+      ? demo(() => orThrow(demoDb.sendDocument(id)))
+      : req<SignDocument>(`/documents/${id}/send`, { method: "POST" }),
+
+  deleteDocument: (id: string) =>
+    DEMO
+      ? demo(() => {
+          demoDb.deleteDocument(id);
+        })
+      : req<void>(`/documents/${id}`, { method: "DELETE" }),
+
+  getDocSign: (token: string) =>
+    DEMO
+      ? demo(() => orThrow(demoDb.getDocSign(token)))
+      : req<DocSignView>(`/docsign/${token}`),
+
+  submitDocSign: (token: string, values: Record<string, string | boolean>, signerName: string) =>
+    DEMO
+      ? demo(() => orThrow(demoDb.submitDocSign(token, values, signerName)), 400)
+      : req<DocSignView>(`/docsign/${token}`, {
+          method: "POST",
+          body: JSON.stringify({ values, signerName }),
         }),
 };
