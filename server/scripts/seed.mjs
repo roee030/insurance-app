@@ -174,6 +174,41 @@ const clients = [
   mk({ fn: "נועה", ln: "שרון", pid: "422113355", mob: "0549012345", stage: "submitted", ages: [40, 20, 8], forceFailedSubmission: true }),
 ];
 
+// A few starter snippets so בנק תשובות isn't empty on a fresh seed — real
+// content is expected to replace/extend these via the Settings page.
+const settings = {
+  agentProfile: {},
+  answerBank: [
+    {
+      id: uid(),
+      title: "דמי ניהול נמוכים משמעותית",
+      text: "המעבר מציע דמי ניהול נמוכים מהמצב בחברה הנוכחית, מהווה חיסכון משמעותי ללקוח לאורך זמן.",
+    },
+    {
+      id: uid(),
+      title: "תשואה עדיפה במסלול המוצע",
+      text: "נתוני התשואה ההיסטורית של המסלול המוצע עולים על ביצועי המסלול הקיים, בהתחשב ברמת הסיכון המתאימה ללקוח.",
+    },
+    {
+      id: uid(),
+      title: "שיפור כיסוי ביטוחי",
+      text: "המוצר המוצע כולל הרחבת כיסוי ביטוחי (נכות/שאירים) התואמת יותר את צרכי הלקוח וגילו הנוכחי.",
+    },
+    {
+      id: uid(),
+      title: "התאמה לפרופיל הסיכון",
+      text: "מסלול ההשקעה הנבחר מותאם באופן מיטבי לטווח ההשקעה ולרמת הסיכון שהלקוח הביע בבירור הצרכים.",
+    },
+    {
+      id: uid(),
+      title: "איחוד קופות לצמצום דמי ניהול",
+      text: "איחוד מספר קופות קיימות תחת חברה אחת מאפשר משא ומתן על דמי ניהול מופחתים ומקטין את מורכבות המעקב עבור הלקוח.",
+    },
+  ],
+  discounts: [],
+  manufacturers: [],
+};
+
 mkdirSync("data", { recursive: true });
-writeFileSync("data/db.json", JSON.stringify({ clients }, null, 2));
-console.log("seeded", clients.length, "clients across 3 stages");
+writeFileSync("data/db.json", JSON.stringify({ clients, settings, documents: [] }, null, 2));
+console.log("seeded", clients.length, "clients across 3 stages +", settings.answerBank.length, "answer-bank entries");

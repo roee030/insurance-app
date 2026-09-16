@@ -64,10 +64,45 @@ const AGENT_NAME = "יואל תורגמן";
 const AGENCY_NAME = "תורגמן סוכנות לביטוח";
 const DISCLOSURE_THRESHOLD_PERCENT = 40;
 
-const SETTINGS_KEY = "insurance-app-demo-settings-v1";
+const SETTINGS_KEY = "insurance-app-demo-settings-v2";
+
+/**
+ * A few starter snippets so בנק תשובות isn't empty on a fresh demo — kept
+ * in sync by hand with the same list in server/scripts/seed.mjs (the usual
+ * dual-runtime duplication in this codebase: demo mirrors the server seed,
+ * not shares it, since they run in different environments).
+ */
+const DEFAULT_ANSWER_BANK: Settings["answerBank"] = [
+  {
+    id: "demo-ab-1",
+    title: "דמי ניהול נמוכים משמעותית",
+    text: "המעבר מציע דמי ניהול נמוכים מהמצב בחברה הנוכחית, מהווה חיסכון משמעותי ללקוח לאורך זמן.",
+  },
+  {
+    id: "demo-ab-2",
+    title: "תשואה עדיפה במסלול המוצע",
+    text: "נתוני התשואה ההיסטורית של המסלול המוצע עולים על ביצועי המסלול הקיים, בהתחשב ברמת הסיכון המתאימה ללקוח.",
+  },
+  {
+    id: "demo-ab-3",
+    title: "שיפור כיסוי ביטוחי",
+    text: "המוצר המוצע כולל הרחבת כיסוי ביטוחי (נכות/שאירים) התואמת יותר את צרכי הלקוח וגילו הנוכחי.",
+  },
+  {
+    id: "demo-ab-4",
+    title: "התאמה לפרופיל הסיכון",
+    text: "מסלול ההשקעה הנבחר מותאם באופן מיטבי לטווח ההשקעה ולרמת הסיכון שהלקוח הביע בבירור הצרכים.",
+  },
+  {
+    id: "demo-ab-5",
+    title: "איחוד קופות לצמצום דמי ניהול",
+    text: "איחוד מספר קופות קיימות תחת חברה אחת מאפשר משא ומתן על דמי ניהול מופחתים ומקטין את מורכבות המעקב עבור הלקוח.",
+  },
+];
+
 const emptySettings: Settings = {
   agentProfile: {},
-  answerBank: [],
+  answerBank: DEFAULT_ANSWER_BANK,
   discounts: [],
   manufacturers: [],
 };

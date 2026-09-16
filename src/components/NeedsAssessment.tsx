@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from "react";
+import { Link } from "react-router-dom";
 import { ClipboardList, Check, Loader2, Plus, Trash2, BookOpen, Building2 } from "lucide-react";
 import type {
   AnswerBankEntry,
@@ -247,11 +248,11 @@ export function NeedsAssessment({ client }: { client: Client }) {
         </Section>
 
         <Section title="הנמקה והערות">
-          {answerBank.length > 0 && (
-            <div className="rounded-xl border-2 border-cyan-500/30 bg-cyan-500/[0.06] p-3">
-              <div className="mb-2 flex items-center gap-2 text-lg font-bold text-cyan-800">
-                <BookOpen className="size-5" /> בנק תשובות — לחץ להוספה להנמקה
-              </div>
+          <div className="rounded-xl border-2 border-cyan-500/30 bg-cyan-500/[0.06] p-3">
+            <div className="mb-2 flex items-center gap-2 text-lg font-bold text-cyan-800">
+              <BookOpen className="size-5" /> בנק תשובות — לחץ להוספה להנמקה
+            </div>
+            {answerBank.length > 0 ? (
               <div className="flex flex-wrap gap-2">
                 {answerBank.map((entry) => (
                   <button
@@ -270,8 +271,15 @@ export function NeedsAssessment({ client }: { client: Client }) {
                   </button>
                 ))}
               </div>
-            </div>
-          )}
+            ) : (
+              <p className="text-[15px] text-cyan-800/70">
+                עדיין אין קטעים בבנק התשובות.{" "}
+                <Link to="/settings" className="font-medium underline hover:no-underline">
+                  הוסף קטעים בהגדרות
+                </Link>
+              </p>
+            )}
+          </div>
           <Row label="הנמקה (מלל חופשי)">
             <div className="space-y-2">
               <TextArea
