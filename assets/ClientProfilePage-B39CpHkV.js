@@ -1,6 +1,0 @@
-import{c as l,u as o,a as r,j as e,L as s,m as c,C as m}from"./index-QNjesA5L.js";import{A as x}from"./arrow-right-Ddn9MxUX.js";/**
- * @license lucide-react v0.469.0 - ISC
- *
- * This source code is licensed under the ISC license.
- * See the LICENSE file in the root directory of this source tree.
- */const p=l("Inbox",[["polyline",{points:"22 12 16 12 14 15 10 15 8 12 2 12",key:"o97t9d"}],["path",{d:"M5.45 5.11 2 12v6a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-6l-3.45-6.89A2 2 0 0 0 16.76 4H7.24a2 2 0 0 0-1.79 1.11z",key:"oot6mr"}]]);function j(){const{id:a}=o(),t=r(i=>i.clients.find(n=>n.id===a));return t?e.jsxs("main",{className:"mx-auto max-w-3xl p-4 lg:p-6",children:[e.jsxs(s,{to:"/",className:"mb-4 inline-flex items-center gap-1.5 text-[13px] text-slate-500 hover:text-slate-700",children:[e.jsx(x,{className:"size-4"})," חזרה לצנרת"]}),e.jsx(c.div,{initial:{opacity:0,y:10},animate:{opacity:1,y:0},transition:{type:"spring",stiffness:280,damping:26},children:e.jsx(m,{client:t})})]}):e.jsxs("div",{className:"mx-auto grid max-w-md place-items-center gap-3 p-16 text-center text-slate-500",children:[e.jsx(p,{className:"size-8 opacity-50"}),e.jsx("p",{className:"text-sm",children:"הלקוח לא נמצא."}),e.jsx(s,{to:"/",className:"text-sm text-emerald-600 hover:underline",children:"חזרה לצנרת"})]})}export{j as ClientProfilePage};
