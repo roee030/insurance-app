@@ -55,12 +55,12 @@ export function ReportPage() {
 
       {/* action bar */}
       <div className="no-print mx-auto mb-4 flex max-w-[820px] items-center justify-between px-4">
-        <span className="text-xs text-slate-500">
+        <span className="text-base text-slate-500">
           דוח לקוח · גרסה {report.version} · הופק {formatDate(s.generatedAt)}
         </span>
         <button
           onClick={() => window.print()}
-          className="inline-flex items-center gap-2 rounded-lg bg-slate-900 px-3.5 py-2 text-sm font-medium text-white hover:bg-slate-800"
+          className="inline-flex items-center gap-2 rounded-lg bg-slate-900 px-3.5 py-2 text-lg font-medium text-white hover:bg-slate-800"
         >
           <Printer className="size-4" /> הדפס / שמור PDF
         </button>
@@ -74,25 +74,25 @@ export function ReportPage() {
         {/* header / brand */}
         <header className="flex items-start justify-between border-b border-slate-200 pb-6">
           <div>
-            <div className="flex items-center gap-2 text-[15px] font-bold tracking-tight text-slate-900">
+            <div className="flex items-center gap-2 text-[19px] font-bold tracking-tight text-slate-900">
               <span className="grid size-8 place-items-center rounded-lg bg-emerald-600 text-white">
                 <ShieldCheck className="size-5" />
               </span>
               {s.agencyName}
             </div>
-            <p className="mt-1 text-[13px] text-slate-500">
+            <p className="mt-1 text-[17px] text-slate-500">
               הסוכן {s.agentName}
               {s.agentLicenseNumber && ` · רישיון ${s.agentLicenseNumber}`}
             </p>
             {s.agentBio && (
-              <p className="mt-1 max-w-xs text-[11px] leading-relaxed text-slate-400">
+              <p className="mt-1 max-w-xs text-[15px] leading-relaxed text-slate-400">
                 {s.agentBio}
               </p>
             )}
           </div>
           <div className="text-left">
-            <h1 className="text-lg font-bold text-slate-900">דוח תיק פנסיוני</h1>
-            <p className="text-[13px] text-slate-500">
+            <h1 className="text-xl font-bold text-slate-900">דוח תיק פנסיוני</h1>
+            <p className="text-[17px] text-slate-500">
               נכון לתאריך {formatDate(s.generatedAt)}
             </p>
           </div>
@@ -101,10 +101,10 @@ export function ReportPage() {
         {/* client */}
         <section className="flex flex-wrap items-baseline justify-between gap-2 py-5">
           <div>
-            <div className="text-[13px] text-slate-500">מוגש עבור</div>
-            <div className="text-xl font-bold text-slate-900">{s.clientName}</div>
+            <div className="text-[17px] text-slate-500">מוגש עבור</div>
+            <div className="text-2xl font-bold text-slate-900">{s.clientName}</div>
           </div>
-          <div className="text-[13px] text-slate-500">
+          <div className="text-[17px] text-slate-500">
             ת.ז <span dir="ltr">{s.personId}</span>
           </div>
         </section>
@@ -125,12 +125,12 @@ export function ReportPage() {
 
         {/* holdings */}
         <section className="mt-7">
-          <h2 className="mb-3 text-sm font-bold text-slate-900">
+          <h2 className="mb-3 text-lg font-bold text-slate-900">
             הרכב התיק הקיים
           </h2>
           <div className="overflow-hidden rounded-xl border border-slate-200">
-            <table className="w-full text-right text-[13px]">
-              <thead className="bg-slate-50 text-[11px] uppercase text-slate-500">
+            <table className="w-full text-right text-[17px]">
+              <thead className="bg-slate-50 text-[15px] uppercase text-slate-500">
                 <tr>
                   <th className="px-3 py-2 font-medium">חברה</th>
                   <th className="px-3 py-2 font-medium">מוצר</th>
@@ -178,7 +178,7 @@ export function ReportPage() {
         {/* recommendation — per-product decisions */}
         {s.productActions && s.productActions.length > 0 && (
           <section className="mt-7">
-            <h2 className="mb-3 flex items-center gap-2 text-sm font-bold text-slate-900">
+            <h2 className="mb-3 flex items-center gap-2 text-lg font-bold text-slate-900">
               <Sparkles className="size-4 text-emerald-600" /> ההמלצה שלנו
             </h2>
             <div className="space-y-2">
@@ -187,9 +187,9 @@ export function ReportPage() {
                   key={a.id}
                   className="rounded-xl border border-emerald-200 bg-emerald-50 p-4"
                 >
-                  <div className="mb-2 text-[13px] font-semibold text-slate-800">
+                  <div className="mb-2 text-[17px] font-semibold text-slate-800">
                     {a.productType}
-                    <span className="mr-1.5 text-[11px] font-normal text-slate-500">
+                    <span className="mr-1.5 text-[15px] font-normal text-slate-500">
                       {a.kind === "transfer" && `· ניוד מ־${a.sourceCompany}`}
                       {a.kind === "new" && "· פתיחת מוצר חדש"}
                       {a.kind === "modify" && `· שינוי כיסויים ב־${a.sourceCompany}`}
@@ -224,7 +224,7 @@ export function ReportPage() {
                     </div>
                   )}
                   {a.note && (
-                    <p className="mt-3 border-t border-emerald-200 pt-3 text-[13px] leading-relaxed text-slate-700">
+                    <p className="mt-3 border-t border-emerald-200 pt-3 text-[17px] leading-relaxed text-slate-700">
                       {a.note}
                     </p>
                   )}
@@ -240,7 +240,7 @@ export function ReportPage() {
             s.needsAssessment.savingsGoal ||
             s.needsAssessment.justification) && (
             <section className="mt-7">
-              <h2 className="mb-3 text-sm font-bold text-slate-900">
+              <h2 className="mb-3 text-lg font-bold text-slate-900">
                 בירור צרכים והנמקה
               </h2>
               <div className="rounded-xl border border-slate-200 p-4">
@@ -265,7 +265,7 @@ export function ReportPage() {
                   )}
                 </div>
                 {s.needsAssessment.justification && (
-                  <p className="mt-3 border-t border-slate-100 pt-3 text-[13px] leading-relaxed text-slate-700">
+                  <p className="mt-3 border-t border-slate-100 pt-3 text-[17px] leading-relaxed text-slate-700">
                     {s.needsAssessment.justification}
                   </p>
                 )}
@@ -276,10 +276,10 @@ export function ReportPage() {
         {/* mandatory disclosure — יצרנים עיקריים, per חוזר הצירוף */}
         {s.disclosedManufacturers && s.disclosedManufacturers.length > 0 && (
           <section className="mt-7">
-            <h2 className="mb-3 text-sm font-bold text-slate-900">
+            <h2 className="mb-3 text-lg font-bold text-slate-900">
               גילוי נאות — יצרנים עיקריים
             </h2>
-            <div className="rounded-xl border border-amber-200 bg-amber-50 p-4 text-[12px] leading-relaxed text-amber-900">
+            <div className="rounded-xl border border-amber-200 bg-amber-50 p-4 text-[16px] leading-relaxed text-amber-900">
               <p className="mb-2">
                 בהתאם לחובת הגילוי הרגולטורית, סוכן זה מקבל למעלה מ־40% מהיקף
                 העמלות בענף מסוים מהיצרנים הבאים:
@@ -297,7 +297,7 @@ export function ReportPage() {
         )}
 
         {/* disclaimer */}
-        <footer className="mt-8 flex items-start gap-2 border-t border-slate-200 pt-5 text-[11px] leading-relaxed text-slate-400">
+        <footer className="mt-8 flex items-start gap-2 border-t border-slate-200 pt-5 text-[15px] leading-relaxed text-slate-400">
           <TrendingUp className="mt-0.5 size-3.5 shrink-0" />
           <p>
             דוח זה מבוסס על נתוני מסלקה פנסיונית נכון לתאריך ההפקה ומהווה מידע כללי
@@ -313,7 +313,7 @@ export function ReportPage() {
 
 function Centered({ children }: { children: React.ReactNode }) {
   return (
-    <div className="grid min-h-screen place-items-center bg-[#eef1f5] text-sm text-slate-500">
+    <div className="grid min-h-screen place-items-center bg-[#eef1f5] text-lg text-slate-500">
       {children}
     </div>
   );
@@ -339,13 +339,13 @@ function Stat({
     >
       <div
         className={
-          "text-lg font-bold tabular-nums " +
+          "text-xl font-bold tabular-nums " +
           (highlight ? "text-emerald-700" : "text-slate-900")
         }
       >
         {value}
       </div>
-      <div className="text-[11px] text-slate-500">{label}</div>
+      <div className="text-[15px] text-slate-500">{label}</div>
     </div>
   );
 }
@@ -353,8 +353,8 @@ function Stat({
 function Field({ label, value }: { label: string; value?: string }) {
   return (
     <div>
-      <div className="text-[11px] text-slate-500">{label}</div>
-      <div className="text-[13px] font-medium text-slate-800">{value ?? "—"}</div>
+      <div className="text-[15px] text-slate-500">{label}</div>
+      <div className="text-[17px] font-medium text-slate-800">{value ?? "—"}</div>
     </div>
   );
 }

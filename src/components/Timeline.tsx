@@ -7,7 +7,7 @@ export function Timeline({ client }: { client: Client }) {
   const events = [...client.history].reverse();
   return (
     <div className="rounded-2xl border border-line bg-surface p-4">
-      <div className="mb-3 text-xs font-semibold text-slate-700">ציר זמן</div>
+      <div className="mb-3 text-base font-semibold text-slate-700">ציר זמן</div>
       <ol className="space-y-0">
         {events.map((e, i) => {
           const meta = STAGES[e.stage];
@@ -25,13 +25,13 @@ export function Timeline({ client }: { client: Client }) {
                 {!last && <span className="w-px flex-1 bg-line" />}
               </div>
               <div className={cn("pb-4", last && "pb-0")}>
-                <div className="text-[13px] font-medium text-slate-800">
+                <div className="text-[17px] font-medium text-slate-800">
                   {meta.label}
                 </div>
                 {e.note && (
-                  <div className="text-[11px] text-slate-500">{e.note}</div>
+                  <div className="text-[15px] text-slate-500">{e.note}</div>
                 )}
-                <div className="text-[11px] text-slate-400">{timeAgo(e.at)}</div>
+                <div className="text-[15px] text-slate-400">{timeAgo(e.at)}</div>
               </div>
             </li>
           );

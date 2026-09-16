@@ -36,10 +36,10 @@ export function ClientModal({
           <div className="flex min-w-0 items-center gap-3">
             <Avatar name={`${client.firstName} ${client.lastName}`} size={44} />
             <div className="min-w-0">
-              <div className="truncate text-[15px] font-semibold tracking-tight text-slate-900">
+              <div className="truncate text-[19px] font-semibold tracking-tight text-slate-900">
                 {client.firstName} {client.lastName}
               </div>
-              <div className="flex flex-wrap items-center gap-x-3 gap-y-0.5 text-[11px] text-slate-500">
+              <div className="flex flex-wrap items-center gap-x-3 gap-y-0.5 text-[15px] text-slate-500">
                 <span className="inline-flex items-center gap-1">
                   <CreditCard className="size-3" />
                   <span dir="ltr">{client.personId}</span>
@@ -57,7 +57,7 @@ export function ClientModal({
             </div>
             <Link
               to={`/client/${client.id}`}
-              className="hidden items-center gap-1.5 rounded-lg bg-slate-100 px-2.5 py-1.5 text-[11px] font-medium text-slate-600 hover:bg-slate-200/70 hover:text-slate-800 md:inline-flex"
+              className="hidden items-center gap-1.5 rounded-lg bg-slate-100 px-2.5 py-1.5 text-[15px] font-medium text-slate-600 hover:bg-slate-200/70 hover:text-slate-800 md:inline-flex"
             >
               <Maximize2 className="size-3" /> דף מלא
             </Link>

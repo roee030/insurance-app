@@ -10,7 +10,13 @@ import {
   AlertTriangle,
 } from "lucide-react";
 import { useClients } from "@/store/useClients";
-import { STAGES, isTerminal, hoursInStage, isStuck } from "@/domain/pipeline";
+import {
+  STAGES,
+  clientOverallSubmission,
+  isTerminal,
+  hoursInStage,
+  isStuck,
+} from "@/domain/pipeline";
 import type { Client, StageId } from "@/domain/types";
 import { ProcessStepper } from "./ProcessStepper";
 import { StageBadge, OwnerChip } from "./StageBadge";
@@ -20,7 +26,7 @@ import { Timeline } from "./Timeline";
 import { ProductActionsPanel } from "./ProductActionsPanel";
 import { MislakaPanel } from "./MislakaPanel";
 import { NeedsAssessment } from "./NeedsAssessment";
-import { SignatureSection } from "./SignatureSection";
+import { ContractsSection } from "./ContractsSection";
 import { ReportsSection } from "./ReportsSection";
 import { cn, formatDate, formatCurrency } from "@/lib/utils";
 
@@ -46,12 +52,14 @@ export function ClientDetail({
   hideHeader?: boolean;
 }) {
   const advanceClient = useClients((s) => s.advanceClient);
+  const createContract = useClients((s) => s.createContract);
   const [busy, setBusy] = useState(false);
 
   const meta = STAGES[client.stage];
   const terminal = isTerminal(client.stage);
   const stuck = isStuck(client);
   const hrs = Math.round(hoursInStage(client));
+  const overallSubmission = clientOverallSubmission(client);
   const needsProduct =
     client.stage === "authorized" && !(client.productActions?.length ?? 0);
   // From the moment the Mislaka data is in, the agent can work the forms.
@@ -63,7 +71,16 @@ export function ClientDetail({
   const handleAdvance = async () => {
     setBusy(true);
     try {
-      await advanceClient(client.id);
+      // "authorized" → "signature" now happens by creating the first
+      // contract (covering everything, by default — same one-click result
+      // as before); afterwards this button is only the manual
+      // signature→submitted fallback. Splitting into several contracts for
+      // different action groups is done via ContractsSection below instead.
+      if (client.stage === "authorized") {
+        await createContract(client.id);
+      } else {
+        await advanceClient(client.id);
+      }
     } finally {
       setBusy(false);
     }
@@ -77,10 +94,10 @@ export function ClientDetail({
           <div className="flex items-center gap-3">
             <Avatar name={`${client.firstName} ${client.lastName}`} size={54} />
             <div>
-              <h2 className="text-lg font-semibold tracking-tight text-slate-900">
+              <h2 className="text-xl font-semibold tracking-tight text-slate-900">
                 {client.firstName} {client.lastName}
               </h2>
-              <div className="mt-0.5 flex flex-wrap items-center gap-x-4 gap-y-1 text-xs text-slate-500">
+              <div className="mt-0.5 flex flex-wrap items-center gap-x-4 gap-y-1 text-base text-slate-500">
                 <span className="inline-flex items-center gap-1">
                   <CreditCard className="size-3" />
                   <span dir="ltr">{client.personId}</span>
@@ -108,7 +125,7 @@ export function ClientDetail({
       </div>
 
       {/* status line */}
-      <div className="flex items-center justify-between rounded-xl bg-slate-50 px-3 py-2.5 text-xs">
+      <div className="flex items-center justify-between rounded-xl bg-slate-50 px-3 py-2.5 text-base">
         <div className="flex items-center gap-2">
           <span className="text-slate-500">כדור אצל:</span>
           <OwnerChip owner={meta.owner} />
@@ -123,7 +140,7 @@ export function ClientDetail({
       {client.mislaka ? (
         <MislakaPanel data={client.mislaka} detailed />
       ) : (
-        <p className="rounded-2xl border border-dashed border-line bg-surface/40 p-5 text-center text-[13px] text-slate-500">
+        <p className="rounded-2xl border border-dashed border-line bg-surface/40 p-5 text-center text-[17px] text-slate-500">
           {meta.description}
         </p>
       )}
@@ -136,14 +153,14 @@ export function ClientDetail({
       {client.stage !== "authorized" &&
         (client.productActions?.length ?? 0) > 0 && (
           <div className="rounded-2xl border border-line bg-surface p-4">
-            <div className="mb-2 flex items-center gap-2 text-xs font-semibold text-slate-700">
+            <div className="mb-2 flex items-center gap-2 text-base font-semibold text-slate-700">
               <Sparkles className="size-3.5 text-cyan-600" /> החלטות שהתקבלו
             </div>
             <div className="space-y-1.5">
               {client.productActions!.map((a) => (
                 <div
                   key={a.id}
-                  className="flex items-center justify-between gap-2 rounded-lg bg-slate-50 px-3 py-2 text-xs"
+                  className="flex items-center justify-between gap-2 rounded-lg bg-slate-50 px-3 py-2 text-base"
                 >
                   <span className="text-slate-700">
                     <span className="font-medium">{a.productType}</span>
@@ -187,10 +204,11 @@ export function ClientDetail({
           </div>
         )}
 
-      {/* digital signature — during / after the signature stage */}
-      {(client.stage === "signature" || client.signRequest?.signedAt) && (
-        <SignatureSection client={client} />
-      )}
+      {/* digital signature — one or more independent contracts. Available
+          from "authorized" onward so the agent can split into separate
+          contracts (e.g. ניוד vs. מוצר חדש) from the start, not just after
+          the default "everything in one" contract already went out. */}
+      {(client.productActions?.length ?? 0) > 0 && <ContractsSection client={client} />}
 
       {/* reports */}
       <ReportsSection client={client} />
@@ -210,22 +228,18 @@ export function ClientDetail({
             {needsProduct ? "החלט על מוצר אחד לפחות כדי להמשיך" : meta.action}
           </Button>
         </div>
-      ) : client.submission?.status === "failed" ? (
-        <div className="rounded-2xl border border-red-200 bg-red-50 p-3 text-center text-xs text-red-600">
+      ) : overallSubmission === "failed" ? (
+        <div className="rounded-2xl border border-red-200 bg-red-50 p-3 text-center text-base text-red-600">
           <AlertTriangle className="mx-auto mb-1 size-5" />
-          השליחה לחברת הביטוח נכשלה
-          {client.submission.note && ` — ${client.submission.note}`}
+          חלק מהשליחות לחברת הביטוח נכשלו — פירוט למעלה בחוזים
           <div className="mt-0.5 text-red-400">
             {formatDate(client.history.at(-1)!.at)}
           </div>
         </div>
       ) : (
-        <div className="rounded-2xl bg-emerald-500/[0.06] p-3 text-center text-xs text-emerald-700">
+        <div className="rounded-2xl bg-emerald-500/[0.06] p-3 text-center text-base text-emerald-700">
           <CheckCircle2 className="mx-auto mb-1 size-5" />
-          נשלח בהצלחה ל
-          {client.productActions?.map((a) => a.targetCompany).join(", ") ??
-            "חברת הביטוח"}{" "}
-          · {formatDate(client.history.at(-1)!.at)}
+          נשלח בהצלחה לחברת הביטוח · {formatDate(client.history.at(-1)!.at)}
         </div>
       )}
     </div>

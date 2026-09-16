@@ -22,14 +22,14 @@ export function TopBar({ onAdd }: { onAdd: () => void }) {
           <ShieldCheck className="size-5 text-emerald-700" />
         </div>
         <div className="leading-tight">
-          <div className="text-sm font-semibold tracking-tight text-slate-900">
+          <div className="text-lg font-semibold tracking-tight text-slate-900">
             Mislaka<span className="text-emerald-600">.</span>
           </div>
-          <div className="text-[10px] text-slate-500">ניהול תהליכי לקוח</div>
+          <div className="text-[14px] text-slate-500">ניהול תהליכי לקוח</div>
         </div>
         <span
           className={cn(
-            "ml-1 hidden items-center gap-1.5 rounded-full px-2 py-1 text-[10px] font-medium ring-1 sm:inline-flex",
+            "ml-1 hidden items-center gap-1.5 rounded-full px-2 py-1 text-[14px] font-medium ring-1 sm:inline-flex",
             connected
               ? "bg-emerald-500/10 text-emerald-700 ring-emerald-500/25"
               : "bg-red-500/10 text-red-600 ring-red-500/25",
@@ -50,7 +50,7 @@ export function TopBar({ onAdd }: { onAdd: () => void }) {
         <Search className="absolute top-1/2 right-3 size-4 -translate-y-1/2 text-slate-400" />
         <input
           placeholder="חיפוש לקוח, ת.ז או טלפון…"
-          className="h-9 w-full rounded-xl border border-line bg-surface/60 pr-9 pl-3 text-sm text-slate-800 outline-none placeholder:text-slate-400 focus:border-zinc-600"
+          className="h-9 w-full rounded-xl border border-line bg-surface/60 pr-9 pl-3 text-lg text-slate-800 outline-none placeholder:text-slate-400 focus:border-zinc-600"
         />
       </div>
 
@@ -65,7 +65,7 @@ export function TopBar({ onAdd }: { onAdd: () => void }) {
           >
             <Bell className="size-4.5" />
             {unread > 0 && (
-              <span className="absolute -top-1 -right-1 grid size-4 place-items-center rounded-full bg-emerald-500 text-[10px] font-bold text-emerald-950">
+              <span className="absolute -top-1 -right-1 grid size-4 place-items-center rounded-full bg-emerald-500 text-[14px] font-bold text-emerald-950">
                 {unread}
               </span>
             )}
@@ -84,12 +84,12 @@ export function TopBar({ onAdd }: { onAdd: () => void }) {
                   transition={{ type: "spring", stiffness: 380, damping: 26 }}
                   className="glass absolute left-0 z-50 mt-2 w-80 rounded-2xl border border-line bg-surface p-2 shadow-2xl"
                 >
-                  <div className="px-2 py-1.5 text-xs font-semibold text-slate-500">
+                  <div className="px-2 py-1.5 text-base font-semibold text-slate-500">
                     התראות
                   </div>
                   <div className="max-h-80 space-y-1 overflow-y-auto">
                     {notifications.length === 0 && (
-                      <div className="px-2 py-6 text-center text-xs text-slate-400">
+                      <div className="px-2 py-6 text-center text-base text-slate-400">
                         אין התראות
                       </div>
                     )}
@@ -113,10 +113,10 @@ export function TopBar({ onAdd }: { onAdd: () => void }) {
                           )}
                         />
                         <div className="min-w-0 flex-1">
-                          <div className="text-[13px] leading-snug text-slate-800">
+                          <div className="text-[17px] leading-snug text-slate-800">
                             {n.message}
                           </div>
-                          <div className="text-[11px] text-slate-500">
+                          <div className="text-[15px] text-slate-500">
                             {timeAgo(n.at)}
                           </div>
                         </div>
@@ -131,14 +131,14 @@ export function TopBar({ onAdd }: { onAdd: () => void }) {
 
         <Link
           to="/documents"
-          className="hidden h-9 items-center gap-1.5 rounded-xl border border-line bg-surface/60 px-3 text-[13px] font-medium text-slate-700 hover:border-zinc-600 md:inline-flex"
+          className="hidden h-9 items-center gap-1.5 rounded-xl border border-line bg-surface/60 px-3 text-[17px] font-medium text-slate-700 hover:border-zinc-600 md:inline-flex"
         >
           <FileText className="size-4" /> מסמכים
         </Link>
 
         <Link
           to="/performance"
-          className="inline-flex h-9 items-center gap-1.5 rounded-xl border border-line bg-surface/60 px-3 text-[13px] font-medium text-slate-700 hover:border-zinc-600"
+          className="inline-flex h-9 items-center gap-1.5 rounded-xl border border-line bg-surface/60 px-3 text-[17px] font-medium text-slate-700 hover:border-zinc-600"
         >
           <BarChart3 className="size-4" /> ביצועים
         </Link>

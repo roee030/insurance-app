@@ -12,8 +12,8 @@ export function ClientProfilePage() {
     return (
       <div className="mx-auto grid max-w-md place-items-center gap-3 p-16 text-center text-slate-500">
         <Inbox className="size-8 opacity-50" />
-        <p className="text-sm">הלקוח לא נמצא.</p>
-        <Link to="/" className="text-sm text-emerald-600 hover:underline">
+        <p className="text-lg">הלקוח לא נמצא.</p>
+        <Link to="/" className="text-lg text-emerald-600 hover:underline">
           חזרה לצנרת
         </Link>
       </div>
@@ -24,7 +24,7 @@ export function ClientProfilePage() {
     <main className="mx-auto max-w-3xl p-4 lg:p-6">
       <Link
         to="/"
-        className="mb-4 inline-flex items-center gap-1.5 text-[13px] text-slate-500 hover:text-slate-700"
+        className="mb-4 inline-flex items-center gap-1.5 text-[17px] text-slate-500 hover:text-slate-700"
       >
         <ArrowRight className="size-4" /> חזרה לצנרת
       </Link>

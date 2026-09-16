@@ -7,6 +7,7 @@ import { reportsRouter } from "./routes/reports.js";
 import { signatureRouter } from "./routes/signature.js";
 import { settingsRouter } from "./routes/settings.js";
 import { documentsRouter } from "./routes/documents.js";
+import { companyLookupRouter } from "./routes/companyLookup.js";
 
 const app = express();
 
@@ -24,6 +25,7 @@ app.use("/api", reportsRouter);
 app.use("/api", signatureRouter);
 app.use("/api", settingsRouter);
 app.use("/api", documentsRouter);
+app.use("/api", companyLookupRouter);
 app.use("/api/clients", clientsRouter);
 
 app.use((_req, res) => res.status(404).json({ error: "route not found" }));

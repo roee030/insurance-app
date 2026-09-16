@@ -110,17 +110,31 @@ function mk({ fn, ln, pid, mob, stage, ages, productActions, na, forceFailedSubm
   };
   if (na) c.needsAssessment = na;
   if (productActions) c.productActions = productActions;
-  if (stage === "signature") c.signRequest = { token: tok(), sentAt: iso(18) };
+  if (stage === "signature") {
+    c.contracts = [
+      {
+        id: uid(),
+        token: tok(),
+        productActionIds: (productActions ?? []).map((a) => a.id),
+        sentAt: iso(18),
+      },
+    ];
+  }
   if (stage === "submitted") {
-    c.signRequest = {
-      token: tok(),
-      sentAt: iso(20),
-      signedAt: iso(13),
-      signerName: fn + " " + ln,
-    };
-    c.submission = forceFailedSubmission
+    const submission = forceFailedSubmission
       ? { status: "failed", at: iso(13), note: "לא נבחרו מוצרים לשליחה — אין מה לשלוח לחברה" }
       : { status: "success", at: iso(13) };
+    c.contracts = [
+      {
+        id: uid(),
+        token: tok(),
+        productActionIds: (productActions ?? []).map((a) => a.id),
+        sentAt: iso(20),
+        signedAt: iso(13),
+        signerName: fn + " " + ln,
+        submission,
+      },
+    ];
   }
   return c;
 }

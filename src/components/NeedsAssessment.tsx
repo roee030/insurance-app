@@ -1,8 +1,9 @@
-import { useEffect, useState } from "react";
-import { ClipboardList, Check, Loader2, Plus, Trash2, BookOpen } from "lucide-react";
+import { useEffect, useRef, useState } from "react";
+import { ClipboardList, Check, Loader2, Plus, Trash2, BookOpen, Building2 } from "lucide-react";
 import type {
   AnswerBankEntry,
   Client,
+  CompanyLookupResult,
   NeedsAssessment as NA,
   Child,
   Spouse,
@@ -11,6 +12,7 @@ import type {
 import { computeBmi } from "@/domain/types";
 import { useClients } from "@/store/useClients";
 import { useSettings } from "@/store/useSettings";
+import { api } from "@/lib/api";
 import { cn } from "@/lib/utils";
 
 const MARITAL: { value: NA["maritalStatus"]; label: string }[] = [
@@ -76,10 +78,10 @@ export function NeedsAssessment({ client }: { client: Client }) {
   return (
     <div className="rounded-2xl border border-line bg-surface p-4">
       <div className="mb-4 flex items-center justify-between">
-        <div className="flex items-center gap-2 text-sm font-semibold text-slate-800">
+        <div className="flex items-center gap-2 text-lg font-semibold text-slate-800">
           <ClipboardList className="size-4 text-cyan-600" /> בירור צרכים והכנת טפסים
         </div>
-        <span className="flex items-center gap-1 text-[11px] text-slate-500">
+        <span className="flex items-center gap-1 text-[15px] text-slate-500">
           {saving ? (
             <>
               <Loader2 className="size-3 animate-spin" /> שומר…
@@ -94,7 +96,7 @@ export function NeedsAssessment({ client }: { client: Client }) {
         </span>
       </div>
 
-      <div className="mb-4 rounded-lg border border-emerald-500/15 bg-emerald-500/[0.05] px-3 py-2 text-[11px] text-emerald-700/80">
+      <div className="mb-4 rounded-lg border border-emerald-500/15 bg-emerald-500/[0.05] px-3 py-2 text-[15px] text-emerald-700/80">
         שם, ת.ז ותאריך לידה נשתלו אוטומטית מנתוני המסלקה. השלם מולו את הפרטים
         שמשתנים:
       </div>
@@ -110,9 +112,8 @@ export function NeedsAssessment({ client }: { client: Client }) {
               />
             </Row>
             <Row label="מעסיק">
-              <TextInput
+              <EmployerAutocomplete
                 value={na.employer ?? ""}
-                placeholder="שם מקום העבודה"
                 onSave={(v) => patch({ employer: v })}
               />
             </Row>
@@ -142,8 +143,8 @@ export function NeedsAssessment({ client }: { client: Client }) {
                         : "border-line bg-surface-2/50 text-slate-500 hover:border-zinc-600",
                     )}
                   >
-                    <span className="text-sm font-semibold">{r.value}</span>
-                    <span className="text-[9.5px] leading-tight">{r.label}</span>
+                    <span className="text-lg font-semibold">{r.value}</span>
+                    <span className="text-[13px] leading-tight">{r.label}</span>
                   </button>
                 ))}
               </div>
@@ -185,7 +186,7 @@ export function NeedsAssessment({ client }: { client: Client }) {
             </Row>
           </div>
           {bmi != null && (
-            <p className="mt-2 text-[11px] text-slate-500">
+            <p className="mt-2 text-[15px] text-slate-500">
               BMI מחושב: <span className="font-medium text-slate-700">{bmi}</span>
             </p>
           )}
@@ -246,28 +247,33 @@ export function NeedsAssessment({ client }: { client: Client }) {
         </Section>
 
         <Section title="הנמקה והערות">
+          {answerBank.length > 0 && (
+            <div className="rounded-xl border-2 border-cyan-500/30 bg-cyan-500/[0.06] p-3">
+              <div className="mb-2 flex items-center gap-2 text-lg font-bold text-cyan-800">
+                <BookOpen className="size-5" /> בנק תשובות — לחץ להוספה להנמקה
+              </div>
+              <div className="flex flex-wrap gap-2">
+                {answerBank.map((entry) => (
+                  <button
+                    key={entry.id}
+                    type="button"
+                    title={entry.text}
+                    onClick={() => {
+                      const current = na.justification ?? "";
+                      const next = current ? `${current}\n${entry.text}` : entry.text;
+                      patch({ justification: next });
+                      setJustificationKey((k) => k + 1);
+                    }}
+                    className="inline-flex items-center gap-1.5 rounded-lg border-2 border-cyan-500/40 bg-white px-3.5 py-2 text-lg font-medium text-cyan-800 shadow-sm hover:bg-cyan-500/10"
+                  >
+                    <Plus className="size-4" /> {entry.title}
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
           <Row label="הנמקה (מלל חופשי)">
             <div className="space-y-2">
-              {answerBank.length > 0 && (
-                <div className="flex flex-wrap gap-1.5">
-                  {answerBank.map((entry) => (
-                    <button
-                      key={entry.id}
-                      type="button"
-                      title={entry.text}
-                      onClick={() => {
-                        const current = na.justification ?? "";
-                        const next = current ? `${current}\n${entry.text}` : entry.text;
-                        patch({ justification: next });
-                        setJustificationKey((k) => k + 1);
-                      }}
-                      className="inline-flex items-center gap-1 rounded-full border border-line bg-surface-2/50 px-2.5 py-1 text-[11px] text-slate-600 hover:border-cyan-500/50 hover:text-cyan-700"
-                    >
-                      <BookOpen className="size-3" /> {entry.title}
-                    </button>
-                  ))}
-                </div>
-              )}
               <TextArea
                 key={justificationKey}
                 value={na.justification ?? ""}
@@ -292,7 +298,7 @@ export function NeedsAssessment({ client }: { client: Client }) {
 function Section({ title, children }: { title: string; children: React.ReactNode }) {
   return (
     <div className="border-t border-line pt-4 first:border-t-0 first:pt-0">
-      <div className="mb-2.5 text-[12px] font-semibold text-slate-700">{title}</div>
+      <div className="mb-2.5 text-[16px] font-semibold text-slate-700">{title}</div>
       <div className="space-y-3">{children}</div>
     </div>
   );
@@ -301,7 +307,7 @@ function Section({ title, children }: { title: string; children: React.ReactNode
 function Row({ label, children }: { label: string; children: React.ReactNode }) {
   return (
     <div>
-      <div className="mb-1.5 text-[11px] font-medium text-slate-500">{label}</div>
+      <div className="mb-1.5 text-[15px] font-medium text-slate-500">{label}</div>
       {children}
     </div>
   );
@@ -323,7 +329,7 @@ function Segmented<T extends string>({
           key={o.value}
           onClick={() => onChange(o.value)}
           className={cn(
-            "rounded-lg border px-3 py-1.5 text-[12px] transition",
+            "rounded-lg border px-3 py-1.5 text-[16px] transition",
             value === o.value
               ? "border-cyan-500/50 bg-cyan-500/10 text-cyan-800"
               : "border-line bg-surface-2/50 text-slate-500 hover:border-zinc-600",
@@ -349,7 +355,7 @@ function Chip({
     <button
       onClick={onClick}
       className={cn(
-        "rounded-full border px-3 py-1 text-[12px] transition",
+        "rounded-full border px-3 py-1 text-[16px] transition",
         active
           ? "border-cyan-500/50 bg-cyan-500/10 text-cyan-800"
           : "border-line bg-surface-2/50 text-slate-500 hover:border-zinc-600",
@@ -376,8 +382,102 @@ function TextInput({
       placeholder={placeholder}
       onChange={(e) => setV(e.target.value)}
       onBlur={() => v !== value && onSave(v.trim())}
-      className="h-9 w-full rounded-lg border border-line bg-surface-2/60 px-3 text-[13px] text-slate-900 outline-none placeholder:text-slate-400 focus:border-cyan-500/60"
+      className="h-9 w-full rounded-lg border border-line bg-surface-2/60 px-3 text-[17px] text-slate-900 outline-none placeholder:text-slate-400 focus:border-cyan-500/60"
     />
+  );
+}
+
+/**
+ * Free-text employer input with live suggestions from the real Israeli
+ * company registry (see server/src/routes/companyLookup.ts). Stays a plain
+ * text field either way — suggestions are just a faster way to fill it,
+ * never a requirement to pick from the list.
+ */
+function EmployerAutocomplete({
+  value,
+  onSave,
+}: {
+  value: string;
+  onSave: (v: string) => void;
+}) {
+  const [v, setV] = useState(value);
+  const [results, setResults] = useState<CompanyLookupResult[]>([]);
+  const [open, setOpen] = useState(false);
+  const [loading, setLoading] = useState(false);
+  const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const requestIdRef = useRef(0);
+
+  const search = (term: string) => {
+    if (debounceRef.current) clearTimeout(debounceRef.current);
+    if (term.trim().length < 2) {
+      setResults([]);
+      return;
+    }
+    debounceRef.current = setTimeout(() => {
+      const id = ++requestIdRef.current;
+      setLoading(true);
+      api
+        .searchCompanies(term.trim())
+        .then((r) => {
+          if (id === requestIdRef.current) setResults(r);
+        })
+        .catch(() => {
+          if (id === requestIdRef.current) setResults([]);
+        })
+        .finally(() => {
+          if (id === requestIdRef.current) setLoading(false);
+        });
+    }, 300);
+  };
+
+  const commit = (next: string) => {
+    setV(next);
+    setOpen(false);
+    if (next !== value) onSave(next.trim());
+  };
+
+  return (
+    <div className="relative">
+      <input
+        value={v}
+        placeholder="שם מקום העבודה"
+        onChange={(e) => {
+          setV(e.target.value);
+          setOpen(true);
+          search(e.target.value);
+        }}
+        onFocus={() => setOpen(true)}
+        onBlur={() => {
+          // Delay so a click on a suggestion registers before the list closes.
+          setTimeout(() => setOpen(false), 150);
+          if (v !== value) onSave(v.trim());
+        }}
+        className="h-9 w-full rounded-lg border border-line bg-surface-2/60 px-3 text-[17px] text-slate-900 outline-none placeholder:text-slate-400 focus:border-cyan-500/60"
+      />
+      {open && (loading || results.length > 0) && (
+        <div className="absolute z-20 mt-1 max-h-64 w-full overflow-y-auto rounded-lg border border-line bg-surface shadow-lg">
+          {loading && (
+            <div className="flex items-center gap-1.5 px-3 py-2 text-[15px] text-slate-400">
+              <Loader2 className="size-3.5 animate-spin" /> מחפש חברות…
+            </div>
+          )}
+          {!loading &&
+            results.map((r) => (
+              <button
+                key={`${r.name}-${r.number ?? ""}`}
+                type="button"
+                onMouseDown={(e) => e.preventDefault()}
+                onClick={() => commit(r.name)}
+                className="flex w-full items-center gap-2 px-3 py-2 text-right text-[15px] text-slate-700 hover:bg-cyan-500/10"
+              >
+                <Building2 className="size-3.5 shrink-0 text-slate-400" />
+                <span className="min-w-0 flex-1 truncate">{r.name}</span>
+                {r.city && <span className="shrink-0 text-[13px] text-slate-400">{r.city}</span>}
+              </button>
+            ))}
+        </div>
+      )}
+    </div>
   );
 }
 
@@ -400,7 +500,7 @@ function NumberInput({
       value={v}
       onChange={(e) => setV(e.target.value)}
       onBlur={commit}
-      className="h-9 w-full rounded-lg border border-line bg-surface-2/60 px-3 text-[13px] text-slate-900 outline-none focus:border-cyan-500/60"
+      className="h-9 w-full rounded-lg border border-line bg-surface-2/60 px-3 text-[17px] text-slate-900 outline-none focus:border-cyan-500/60"
     />
   );
 }
@@ -422,7 +522,7 @@ function TextArea({
       rows={3}
       onChange={(e) => setV(e.target.value)}
       onBlur={() => v !== value && onSave(v.trim())}
-      className="w-full resize-y rounded-lg border border-line bg-surface-2/60 px-3 py-2 text-[13px] leading-relaxed text-slate-900 outline-none placeholder:text-slate-400 focus:border-cyan-500/60"
+      className="w-full resize-y rounded-lg border border-line bg-surface-2/60 px-3 py-2 text-[17px] leading-relaxed text-slate-900 outline-none placeholder:text-slate-400 focus:border-cyan-500/60"
     />
   );
 }
@@ -460,7 +560,7 @@ function SpouseForm({
           dir="ltr"
           value={draft.birthDate ?? ""}
           onChange={(e) => patch({ birthDate: e.target.value })}
-          className="h-9 w-full rounded-lg border border-line bg-surface-2/60 px-3 text-[13px] text-slate-900 outline-none focus:border-cyan-500/60"
+          className="h-9 w-full rounded-lg border border-line bg-surface-2/60 px-3 text-[17px] text-slate-900 outline-none focus:border-cyan-500/60"
         />
       </Row>
       <Row label="מין">
@@ -512,14 +612,14 @@ function ChildrenList({
             value={child.firstName}
             placeholder="שם הילד/ה"
             onChange={(e) => update(child.id, { firstName: e.target.value })}
-            className="h-9 flex-1 rounded-lg border border-line bg-surface-2/60 px-3 text-[13px] text-slate-900 outline-none placeholder:text-slate-400 focus:border-cyan-500/60"
+            className="h-9 flex-1 rounded-lg border border-line bg-surface-2/60 px-3 text-[17px] text-slate-900 outline-none placeholder:text-slate-400 focus:border-cyan-500/60"
           />
           <input
             type="date"
             dir="ltr"
             value={child.birthDate ?? ""}
             onChange={(e) => update(child.id, { birthDate: e.target.value })}
-            className="h-9 w-40 rounded-lg border border-line bg-surface-2/60 px-2 text-[13px] text-slate-900 outline-none focus:border-cyan-500/60"
+            className="h-9 w-40 rounded-lg border border-line bg-surface-2/60 px-2 text-[17px] text-slate-900 outline-none focus:border-cyan-500/60"
           />
           <button
             onClick={() => remove(child.id)}
@@ -531,7 +631,7 @@ function ChildrenList({
       ))}
       <button
         onClick={add}
-        className="inline-flex items-center gap-1.5 rounded-lg border border-dashed border-line px-3 py-1.5 text-[12px] text-slate-500 hover:border-cyan-500/50 hover:text-cyan-700"
+        className="inline-flex items-center gap-1.5 rounded-lg border border-dashed border-line px-3 py-1.5 text-[16px] text-slate-500 hover:border-cyan-500/50 hover:text-cyan-700"
       >
         <Plus className="size-3.5" /> הוסף ילד/ה
       </button>

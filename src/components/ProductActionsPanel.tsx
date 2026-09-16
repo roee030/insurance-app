@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import {
   ArrowLeftRight,
   Ban,
@@ -16,9 +16,15 @@ import type {
   ProductActionKind,
 } from "@/domain/types";
 import { useClients } from "@/store/useClients";
+import { useSettings } from "@/store/useSettings";
 import { cn, formatCurrency } from "@/lib/utils";
 import { calculatePremium, hasCalculatorSupport } from "@/domain/premiumCalculator";
 import { PRODUCT_TYPES, COMPANIES, TRACKS } from "@/domain/constants";
+import type { Discount } from "@/domain/types";
+
+// Stable reference — see NeedsAssessment.tsx for why a literal `?? []`
+// fallback on a zustand selector is unsafe (infinite update loop).
+const EMPTY_DISCOUNTS: Discount[] = [];
 
 const RESPONSIBILITY: { value: CancellationResponsibility; label: string }[] = [
   { value: "agent", label: "אני (הסוכן)" },
@@ -47,7 +53,7 @@ function Select({
       value={value ?? ""}
       onChange={(e) => onChange(e.target.value)}
       className={cn(
-        "h-9 w-full rounded-lg border border-line bg-white px-2 text-[13px] outline-none focus:border-cyan-500/60",
+        "h-9 w-full rounded-lg border border-line bg-white px-2 text-[17px] outline-none focus:border-cyan-500/60",
         value ? "text-slate-900" : "text-slate-400",
       )}
     >
@@ -70,14 +76,14 @@ function ResponsibilityPicker({
 }) {
   return (
     <div>
-      <div className="mb-1 text-[11px] text-slate-500">באחריות מי ביטול הפוליסה הקיימת</div>
+      <div className="mb-1 text-[15px] text-slate-500">באחריות מי ביטול הפוליסה הקיימת</div>
       <div className="flex flex-wrap gap-1.5">
         {RESPONSIBILITY.map((r) => (
           <button
             key={r.value}
             onClick={() => onChange(r.value)}
             className={cn(
-              "rounded-lg border px-2.5 py-1.5 text-[12px] transition",
+              "rounded-lg border px-2.5 py-1.5 text-[16px] transition",
               value === r.value
                 ? "border-violet-500/50 bg-violet-500/10 text-violet-800"
                 : "border-line bg-white text-slate-500 hover:border-slate-400",
@@ -123,7 +129,7 @@ function TargetFields({
           })
         }
         placeholder="פרמיה חודשית ₪"
-        className="h-9 rounded-lg border border-line bg-white px-2 text-[13px] text-slate-900 outline-none placeholder:text-slate-400 focus:border-cyan-500/60"
+        className="h-9 rounded-lg border border-line bg-white px-2 text-[17px] text-slate-900 outline-none placeholder:text-slate-400 focus:border-cyan-500/60"
       />
     </div>
   );
@@ -141,7 +147,7 @@ function ModifyFields({
   return (
     <div className="grid grid-cols-2 gap-3">
       <div className="rounded-lg bg-slate-50 p-2">
-        <div className="mb-1.5 text-[10px] font-medium text-slate-500">מצב לפני שינוי</div>
+        <div className="mb-1.5 text-[14px] font-medium text-slate-500">מצב לפני שינוי</div>
         <div className="space-y-1.5">
           <input
             type="number"
@@ -149,7 +155,7 @@ function ModifyFields({
             value={draft.beforeSum ?? ""}
             onChange={(e) => onChange({ beforeSum: num(e.target.value) })}
             placeholder="סכום ביטוח ₪"
-            className="h-8 w-full rounded-md border border-line bg-white px-2 text-[12px] text-slate-900 outline-none placeholder:text-slate-400"
+            className="h-8 w-full rounded-md border border-line bg-white px-2 text-[16px] text-slate-900 outline-none placeholder:text-slate-400"
           />
           <input
             type="number"
@@ -157,12 +163,12 @@ function ModifyFields({
             value={draft.beforePremium ?? ""}
             onChange={(e) => onChange({ beforePremium: num(e.target.value) })}
             placeholder="עלות חודשית ₪"
-            className="h-8 w-full rounded-md border border-line bg-white px-2 text-[12px] text-slate-900 outline-none placeholder:text-slate-400"
+            className="h-8 w-full rounded-md border border-line bg-white px-2 text-[16px] text-slate-900 outline-none placeholder:text-slate-400"
           />
         </div>
       </div>
       <div className="rounded-lg bg-cyan-50 p-2">
-        <div className="mb-1.5 text-[10px] font-medium text-cyan-700">מצב אחרי שינוי</div>
+        <div className="mb-1.5 text-[14px] font-medium text-cyan-700">מצב אחרי שינוי</div>
         <div className="space-y-1.5">
           <input
             type="number"
@@ -170,7 +176,7 @@ function ModifyFields({
             value={draft.afterSum ?? ""}
             onChange={(e) => onChange({ afterSum: num(e.target.value) })}
             placeholder="סכום ביטוח ₪"
-            className="h-8 w-full rounded-md border border-cyan-200 bg-white px-2 text-[12px] text-slate-900 outline-none placeholder:text-slate-400"
+            className="h-8 w-full rounded-md border border-cyan-200 bg-white px-2 text-[16px] text-slate-900 outline-none placeholder:text-slate-400"
           />
           <input
             type="number"
@@ -178,7 +184,7 @@ function ModifyFields({
             value={draft.monthlyPremium ?? ""}
             onChange={(e) => onChange({ monthlyPremium: num(e.target.value) })}
             placeholder="עלות חודשית ₪"
-            className="h-8 w-full rounded-md border border-cyan-200 bg-white px-2 text-[12px] text-slate-900 outline-none placeholder:text-slate-400"
+            className="h-8 w-full rounded-md border border-cyan-200 bg-white px-2 text-[16px] text-slate-900 outline-none placeholder:text-slate-400"
           />
         </div>
       </div>
@@ -265,10 +271,10 @@ function HoldingRow({ client, holding }: { client: Client; holding: PolisaSummar
     <div className="rounded-xl border border-line bg-white p-3">
       <div className="flex items-center justify-between gap-2">
         <div className="min-w-0">
-          <div className="truncate text-[13px] font-medium text-slate-800">
+          <div className="truncate text-[17px] font-medium text-slate-800">
             {holding.manufacturer} · {holding.product_type}
           </div>
-          <div className="text-[11px] text-slate-500">
+          <div className="text-[15px] text-slate-500">
             צבירה: {formatCurrency(holding.balance ?? 0)}
             {holding.track ? ` · ${holding.track}` : ""}
           </div>
@@ -283,7 +289,7 @@ function HoldingRow({ client, holding }: { client: Client; holding: PolisaSummar
                   key={k}
                   onClick={() => pickKind(k)}
                   title={meta.label}
-                  className="inline-flex items-center gap-1 rounded-lg bg-slate-50 px-2 py-1.5 text-[11px] font-medium text-slate-600 hover:bg-cyan-50 hover:text-cyan-700"
+                  className="inline-flex items-center gap-1 rounded-lg bg-slate-50 px-2 py-1.5 text-[15px] font-medium text-slate-600 hover:bg-cyan-50 hover:text-cyan-700"
                 >
                   <Icon className="size-3.5" /> {meta.label}
                 </button>
@@ -305,7 +311,7 @@ function HoldingRow({ client, holding }: { client: Client; holding: PolisaSummar
         <div className="mt-3 space-y-3 border-t border-slate-100 pt-3">
           {draft.kind === "transfer" && (
             <>
-              <div className="text-[11px] text-slate-500">
+              <div className="text-[15px] text-slate-500">
                 מנייד מ־<span className="font-medium text-slate-700">{holding.manufacturer}</span> אל:
               </div>
               <TargetFields draft={draft} onChange={patch} />
@@ -334,10 +340,11 @@ function HoldingRow({ client, holding }: { client: Client; holding: PolisaSummar
 }
 
 /** A standalone new policy that has no matching Mislaka holding. */
-function NewProductCard({ client }: { client: Client }) {
+function NewProductCard({ client, onClose }: { client: Client; onClose: () => void }) {
   const save = useClients((s) => s.saveProductAction);
   const remove = useClients((s) => s.removeProductAction);
   const [id] = useState(() => `new-${crypto.randomUUID().slice(0, 8)}`);
+  const [saved, setSaved] = useState(false);
   const [draft, setDraft] = useState<ProductAction>({
     id,
     productType: "",
@@ -349,18 +356,30 @@ function NewProductCard({ client }: { client: Client }) {
     const next = { ...draft, ...p };
     setDraft(next);
     if (next.productType && next.targetCompany && next.targetTrack) {
-      void save(client.id, next).catch(() => {});
+      setSaved(true);
+      // Once fully filled, this draft becomes a persisted action and is
+      // taken over by ExistingNewCard (rendered from client.productActions)
+      // — close the draft so the two don't render side by side.
+      void save(client.id, next)
+        .then(onClose)
+        .catch(() => {});
     }
   };
 
   return (
     <div className="rounded-xl border border-emerald-500/25 bg-emerald-500/[0.04] p-3">
       <div className="mb-2 flex items-center justify-between">
-        <span className="text-[12px] font-medium text-emerald-700">
+        <span className="text-[16px] font-medium text-emerald-700">
           מוצר חדש (ללא זכות קיימת)
         </span>
         <button
-          onClick={() => void remove(client.id, id).catch(() => {})}
+          onClick={() => {
+            // Only something already persisted (all required fields were
+            // filled at some point) needs an actual delete call — otherwise
+            // there's nothing on the server to remove.
+            if (saved) void remove(client.id, id).catch(() => {});
+            onClose();
+          }}
           className="grid size-7 place-items-center rounded-lg text-slate-400 hover:bg-slate-100 hover:text-slate-600"
         >
           <X className="size-3.5" />
@@ -396,20 +415,35 @@ function PremiumSuggestButton({
   draft: Pick<ProductAction, "productType" | "targetCompany" | "sourceBalance">;
   onApply: (premium: number) => void;
 }) {
-  const result = calculatePremium({
-    productType: draft.productType,
-    company: draft.targetCompany,
-    sumInsured: draft.sourceBalance,
-  });
+  const discounts = useSettings((s) => s.settings?.discounts ?? EMPTY_DISCOUNTS);
+  const result = calculatePremium(
+    {
+      productType: draft.productType,
+      company: draft.targetCompany,
+      sumInsured: draft.sourceBalance,
+    },
+    discounts,
+  );
   if (!result) return null;
   return (
     <button
       type="button"
       onClick={() => onApply(result.monthlyPremium)}
-      className="inline-flex items-center gap-1.5 rounded-lg border border-dashed border-cyan-400/50 bg-cyan-50/50 px-2.5 py-1.5 text-[11px] text-cyan-700 hover:bg-cyan-100/60"
+      className="inline-flex flex-wrap items-center gap-1.5 rounded-lg border border-dashed border-cyan-400/50 bg-cyan-50/50 px-2.5 py-1.5 text-[15px] text-cyan-700 hover:bg-cyan-100/60"
       title="אומדן בלבד — מבוסס על טבלת תעריפים לדוגמה, לא תעריף רשמי מהחברה"
     >
-      חשב פרמיה (אומדן) → {formatCurrency(result.monthlyPremium)}/חודש
+      חשב פרמיה (אומדן)
+      {result.appliedDiscount ? (
+        <>
+          <span className="line-through opacity-60">
+            {formatCurrency(result.baseMonthlyPremium)}
+          </span>
+          → {formatCurrency(result.monthlyPremium)}/חודש (הנחת {result.appliedDiscount.name}{" "}
+          {result.appliedDiscount.percent}%)
+        </>
+      ) : (
+        <>→ {formatCurrency(result.monthlyPremium)}/חודש</>
+      )}
     </button>
   );
 }
@@ -418,13 +452,18 @@ export function ProductActionsPanel({ client }: { client: Client }) {
   const holdings = client.mislaka?.polisot ?? [];
   const newActions = (client.productActions ?? []).filter((a) => a.kind === "new");
   const [addingNew, setAddingNew] = useState(false);
+  const loadSettings = useSettings((s) => s.load);
+
+  useEffect(() => {
+    void loadSettings();
+  }, [loadSettings]);
 
   return (
     <div className="rounded-2xl border border-cyan-500/20 bg-cyan-500/[0.04] p-4">
-      <div className="mb-3 flex items-center gap-2 text-xs font-semibold text-cyan-700">
+      <div className="mb-3 flex items-center gap-2 text-base font-semibold text-cyan-700">
         <Sparkles className="size-3.5" /> ניוד ופתיחת מוצרים — לכל מוצר בנפרד
       </div>
-      <p className="mb-3 text-[11px] text-slate-500">
+      <p className="mb-3 text-[15px] text-slate-500">
         עבור כל מוצר קיים בחר אם לנייד, לשנות כיסויים, לבטל, או להשאיר ללא
         שינוי. ניתן גם לפתוח מוצר חדש שלא קיים היום.
       </p>
@@ -436,12 +475,14 @@ export function ProductActionsPanel({ client }: { client: Client }) {
         {newActions.map((a) => (
           <ExistingNewCard key={a.id} client={client} action={a} />
         ))}
-        {addingNew && <NewProductCard client={client} />}
+        {addingNew && (
+          <NewProductCard client={client} onClose={() => setAddingNew(false)} />
+        )}
       </div>
 
       <button
         onClick={() => setAddingNew(true)}
-        className="mt-3 inline-flex items-center gap-1.5 rounded-lg border border-dashed border-cyan-500/40 px-3 py-1.5 text-[12px] text-cyan-700 hover:bg-cyan-500/10"
+        className="mt-3 inline-flex items-center gap-1.5 rounded-lg border border-dashed border-cyan-500/40 px-3 py-1.5 text-[16px] text-cyan-700 hover:bg-cyan-500/10"
       >
         <Plus className="size-3.5" /> הוסף פתיחת מוצר חדש
       </button>
@@ -463,7 +504,7 @@ function ExistingNewCard({ client, action }: { client: Client; action: ProductAc
   return (
     <div className="rounded-xl border border-emerald-500/25 bg-emerald-500/[0.04] p-3">
       <div className="mb-2 flex items-center justify-between">
-        <span className="text-[12px] font-medium text-emerald-700">
+        <span className="text-[16px] font-medium text-emerald-700">
           מוצר חדש · {draft.productType}
         </span>
         <button

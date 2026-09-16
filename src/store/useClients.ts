@@ -2,11 +2,13 @@ import { create } from "zustand";
 import type {
   AppNotification,
   Client,
+  Contract,
   ProductAction,
   Report,
   NeedsAssessment,
 } from "@/domain/types";
 import { api, type NewClientInput } from "@/lib/api";
+import { clientOverallSubmission } from "@/domain/pipeline";
 
 interface ClientsState {
   clients: Client[];
@@ -26,7 +28,8 @@ interface ClientsState {
   removeProductAction: (id: string, actionId: string) => Promise<void>;
   saveNeedsAssessment: (id: string, data: NeedsAssessment) => Promise<void>;
   advanceClient: (id: string) => Promise<void>;
-  createReport: (id: string) => Promise<Report>;
+  createContract: (id: string, productActionIds?: string[], label?: string) => Promise<Contract>;
+  createReport: (id: string, productActionIds?: string[]) => Promise<Report>;
   markNotificationsRead: () => void;
 }
 
@@ -51,7 +54,7 @@ function diffNotifications(prev: Client[], next: Client[]): AppNotification[] {
     if (c.stage !== "submitted") continue;
     const name = `${c.firstName} ${c.lastName}`;
     out.push(
-      c.submission?.status === "failed"
+      clientOverallSubmission(c) === "failed"
         ? mkNotif(c.id, "submission_failed", `שליחה לחברת הביטוח נכשלה עבור ${name}`)
         : mkNotif(c.id, "submission_success", `${name} נשלח בהצלחה לחברת הביטוח`),
     );
@@ -165,6 +168,17 @@ export const useClients = create<ClientsState>((set, get) => ({
     }));
   },
 
+  createContract: async (id, productActionIds, label) => {
+    const updated = await api.createContract(id, productActionIds, label);
+    lastStage.set(id, updated.stage);
+    set((s) => ({
+      clients: s.clients.map((c) => (c.id === id ? updated : c)),
+    }));
+    const created = updated.contracts?.at(-1);
+    if (!created) throw new Error("contract creation failed");
+    return created;
+  },
+
   saveNeedsAssessment: async (id, data) => {
     const updated = await api.saveNeedsAssessment(id, data);
     set((s) => ({
@@ -172,8 +186,8 @@ export const useClients = create<ClientsState>((set, get) => ({
     }));
   },
 
-  createReport: async (id) => {
-    const report = await api.createReport(id);
+  createReport: async (id, productActionIds) => {
+    const report = await api.createReport(id, productActionIds);
     set((s) => ({
       clients: s.clients.map((c) =>
         c.id === id

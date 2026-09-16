@@ -19,10 +19,10 @@ export function DashboardPage() {
       <div>
         <div className="mb-3 flex items-center gap-2">
           <LayoutGrid className="size-4 text-slate-500" />
-          <h1 className="text-sm font-semibold tracking-tight text-slate-800">
+          <h1 className="text-lg font-semibold tracking-tight text-slate-800">
             צנרת לקוחות
           </h1>
-          <span className="text-xs text-slate-400">
+          <span className="text-base text-slate-400">
             — לחץ על לקוח לפתיחת הכרטיס המלא
           </span>
         </div>

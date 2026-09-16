@@ -34,10 +34,10 @@ export function ClientCard({
       <div className="flex items-center gap-3">
         <Avatar name={`${client.firstName} ${client.lastName}`} size={38} />
         <div className="min-w-0 flex-1">
-          <div className="truncate text-sm font-semibold text-slate-900">
+          <div className="truncate text-lg font-semibold text-slate-900">
             {client.firstName} {client.lastName}
           </div>
-          <div className="flex items-center gap-1 text-[11px] text-slate-500">
+          <div className="flex items-center gap-1 text-[15px] text-slate-500">
             <Phone className="size-3" />
             <span dir="ltr">{client.mobile}</span>
           </div>
@@ -48,7 +48,7 @@ export function ClientCard({
         <OwnerChip owner={meta.owner} />
         <div
           className={cn(
-            "inline-flex items-center gap-1 text-[11px]",
+            "inline-flex items-center gap-1 text-[15px]",
             stuck ? "text-amber-600" : "text-slate-500",
           )}
         >
@@ -62,7 +62,7 @@ export function ClientCard({
       </div>
 
       {(client.productActions?.length ?? 0) > 0 && (
-        <div className="mt-2 truncate rounded-lg bg-slate-100 px-2 py-1 text-[11px] text-slate-500">
+        <div className="mt-2 truncate rounded-lg bg-slate-100 px-2 py-1 text-[15px] text-slate-500">
           {client.productActions!.length === 1
             ? `${client.productActions![0].targetCompany} · ${client.productActions![0].productType}`
             : `${client.productActions!.length} מוצרים בטיפול`}

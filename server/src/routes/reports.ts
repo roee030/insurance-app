@@ -20,9 +20,23 @@ function weightedAvgFee(holdings: PolisaSummary[]): number {
   return Math.round((weighted / total) * 100) / 100;
 }
 
-function buildSnapshot(client: Client, settings: Settings): ReportSnapshot {
+/**
+ * `productActionIds`, when given, scopes the "ההמלצה שלנו" section to just
+ * that subset — e.g. a report covering only the ניוד actions, with a
+ * separate report for a new-policy action generated independently. The
+ * existing-portfolio table (holdings/totals) always shows everything, since
+ * that's context about the client's whole picture either way.
+ */
+function buildSnapshot(
+  client: Client,
+  settings: Settings,
+  productActionIds?: string[],
+): ReportSnapshot {
   const holdings = client.mislaka?.polisot ?? [];
   const accumulation = holdings.reduce((s, h) => s + (h.balance ?? 0), 0);
+  const productActions = productActionIds
+    ? (client.productActions ?? []).filter((a) => productActionIds.includes(a.id))
+    : client.productActions;
   return {
     clientName: `${client.firstName} ${client.lastName}`,
     personId: client.personId,
@@ -37,7 +51,7 @@ function buildSnapshot(client: Client, settings: Settings): ReportSnapshot {
       productCount: holdings.length,
       avgFeeAccumulation: weightedAvgFee(holdings),
     },
-    productActions: client.productActions,
+    productActions,
     needsAssessment: client.needsAssessment,
     disclosedManufacturers: settings.manufacturers.filter(
       (m) => m.commissionPercent >= DISCLOSURE_THRESHOLD_PERCENT,
@@ -45,8 +59,15 @@ function buildSnapshot(client: Client, settings: Settings): ReportSnapshot {
   };
 }
 
-/** POST /api/clients/:id/reports — freeze a new snapshot report. */
+/**
+ * POST /api/clients/:id/reports — freeze a new snapshot report. Body may
+ * include `productActionIds` to scope the report to a subset of decisions
+ * (e.g. just the transfers, or just a new policy) — omit for "everything".
+ */
 reportsRouter.post("/clients/:id/reports", async (req, res) => {
+  const productActionIds: string[] | undefined = Array.isArray(req.body?.productActionIds)
+    ? req.body.productActionIds
+    : undefined;
   const result = await updateDB((db) => {
     const client = db.clients.find((c) => c.id === req.params.id);
     if (!client) return null;
@@ -55,7 +76,7 @@ reportsRouter.post("/clients/:id/reports", async (req, res) => {
       id: crypto.randomUUID().replace(/-/g, "").slice(0, 12),
       version,
       createdAt: new Date().toISOString(),
-      snapshot: buildSnapshot(client, db.settings),
+      snapshot: buildSnapshot(client, db.settings, productActionIds),
     };
     client.reports = [report, ...(client.reports ?? [])];
     return report;

@@ -167,8 +167,7 @@ export interface Client {
   mislaka?: MislakaResult;
   needsAssessment?: NeedsAssessment;
   productActions?: ProductAction[];
-  signRequest?: SignatureRequest;
-  submission?: Submission;
+  contracts?: Contract[];
   reports?: Report[];
 
   createdAt: string;
@@ -202,26 +201,36 @@ export interface Report {
   snapshot: ReportSnapshot;
 }
 
-export interface SignatureRequest {
-  token: string;
-  sentAt: string;
-  signedAt?: string;
-  signerName?: string;
-}
-
-/** Outcome of submitting the signed deal to the insurance company(ies). */
+/** Outcome of submitting one contract's signed deal to the insurance company(ies). */
 export interface Submission {
   status: "success" | "failed";
   at: string;
   note?: string;
 }
 
-/** Public view returned by the sign endpoint (what the client sees). */
+/**
+ * ONE independent signing contract, covering a chosen subset of the
+ * client's productActions. A client can have several — "כל דבר זה חוזה אחד
+ * בפני עצמו" — each with its own link, signature and submission outcome.
+ */
+export interface Contract {
+  id: string;
+  token: string;
+  productActionIds: string[];
+  label?: string;
+  sentAt: string;
+  signedAt?: string;
+  signerName?: string;
+  submission?: Submission;
+}
+
+/** Public view returned by the sign endpoint (what the client sees) for ONE contract. */
 export interface SignView {
   clientName: string;
   personId: string;
   agencyName: string;
   agentName: string;
+  label?: string;
   productActions: ProductAction[];
   sentAt?: string;
   signedAt?: string | null;
@@ -331,6 +340,13 @@ export interface DocSignView {
   completedAt?: string;
   values?: Record<string, string | boolean>;
   signerName?: string;
+}
+
+/** One match from the Israeli Registrar of Companies lookup (employer-field autocomplete). */
+export interface CompanyLookupResult {
+  name: string;
+  number?: number;
+  city?: string;
 }
 
 export interface AppNotification {

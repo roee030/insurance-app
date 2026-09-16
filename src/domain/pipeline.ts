@@ -137,3 +137,19 @@ export function advance(client: Client, note?: string): Client {
   };
   return { ...client, stage: next, history: [...client.history, event] };
 }
+
+/**
+ * Rolls up a client's (possibly several) independent contracts into one
+ * status for dashboard/analytics/notification code that only cares about
+ * "did this deal go through overall" — not which specific contract.
+ * undefined = nothing submitted yet; "pending" = some done, some not.
+ */
+export function clientOverallSubmission(
+  client: Client,
+): "success" | "failed" | "pending" | undefined {
+  const contracts = client.contracts ?? [];
+  const withOutcome = contracts.filter((c) => c.submission);
+  if (withOutcome.length === 0) return undefined;
+  if (withOutcome.some((c) => c.submission!.status === "failed")) return "failed";
+  return withOutcome.length === contracts.length ? "success" : "pending";
+}

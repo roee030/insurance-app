@@ -36,10 +36,10 @@ function Stat({
           <Icon className="size-5" />
         </div>
         <div>
-          <div className="text-2xl font-semibold tracking-tight text-slate-900 tabular-nums">
+          <div className="text-3xl font-semibold tracking-tight text-slate-900 tabular-nums">
             {value}
           </div>
-          <div className="text-[11px] text-slate-500">{label}</div>
+          <div className="text-[15px] text-slate-500">{label}</div>
         </div>
       </div>
     </motion.div>

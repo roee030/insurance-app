@@ -106,23 +106,35 @@ export interface NeedsAssessment {
   updatedAt?: string;
 }
 
-/** An online-signature request handed to the client via a personal link. */
-export interface SignatureRequest {
-  token: string; //     used in the public /sign/:token link
-  sentAt: string;
-  signedAt?: string;
-  signerName?: string;
-}
-
 /**
- * The outcome of submitting the signed deal to the insurance company(ies) —
- * set the moment the client signs. Surfaced to the agent as a notification
- * (אישור קבלה: נשלח בהצלחה/כישלון) and shown on the closed client record.
+ * The outcome of submitting one contract's signed deal to the insurance
+ * company(ies) — set the moment the client signs THAT contract. Surfaced to
+ * the agent as a notification (אישור קבלה: נשלח בהצלחה/כישלון).
  */
 export interface Submission {
   status: "success" | "failed";
   at: string;
   note?: string;
+}
+
+/**
+ * ONE online-signature contract handed to the client via a personal link,
+ * covering a chosen subset of the client's productActions. A client can
+ * have several independent contracts (e.g. one for ניוד actions, a separate
+ * one for a new policy) — "כל דבר זה חוזה אחד בפני עצמו" — each tracked to
+ * its own signature and submission outcome, per docs/sms-feature-gap-analysis.md.
+ */
+export interface Contract {
+  id: string;
+  token: string; //     used in the public /sign/:token link
+  /** Which of the client's productActions this contract covers. */
+  productActionIds: string[];
+  /** Optional agent-facing label, e.g. "ניוד" / "מוצר חדש". */
+  label?: string;
+  sentAt: string;
+  signedAt?: string;
+  signerName?: string;
+  submission?: Submission;
 }
 
 export type ProductActionKind = "transfer" | "new" | "modify" | "cancel";
@@ -181,8 +193,8 @@ export interface Client {
   /** Per-product decisions (ניוד / פתיחת פוליסה חדשה), one per holding. */
   productActions?: ProductAction[];
 
-  signRequest?: SignatureRequest;
-  submission?: Submission;
+  /** Independent signing contracts — see Contract for why this is an array. */
+  contracts?: Contract[];
 
   /** Frozen client-facing reports generated over time (newest first). */
   reports?: Report[];

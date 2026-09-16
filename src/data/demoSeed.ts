@@ -6,6 +6,7 @@
  */
 import type {
   Client,
+  Contract,
   MislakaResult,
   NeedsAssessment,
   PolisaSummary,
@@ -153,15 +154,15 @@ function mk(now: number, s: Spec): Client {
   if (s.na) client.needsAssessment = s.na;
   if (s.productActions) client.productActions = s.productActions;
   if (s.stage === "signature") {
-    client.signRequest = { token: tok(), sentAt: new Date(now - 18 * 3_600_000).toISOString() };
+    const contract: Contract = {
+      id: uid(),
+      token: tok(),
+      productActionIds: (s.productActions ?? []).map((a) => a.id),
+      sentAt: new Date(now - 18 * 3_600_000).toISOString(),
+    };
+    client.contracts = [contract];
   }
   if (s.stage === "submitted") {
-    client.signRequest = {
-      token: tok(),
-      sentAt: new Date(now - 20 * 3_600_000).toISOString(),
-      signedAt: new Date(now - 13 * 3_600_000).toISOString(),
-      signerName: `${s.fn} ${s.ln}`,
-    };
     const submission: Submission = s.forceFailedSubmission
       ? {
           status: "failed",
@@ -169,7 +170,16 @@ function mk(now: number, s: Spec): Client {
           note: "לא נבחרו מוצרים לשליחה — אין מה לשלוח לחברה",
         }
       : { status: "success", at: new Date(now - 13 * 3_600_000).toISOString() };
-    client.submission = submission;
+    const contract: Contract = {
+      id: uid(),
+      token: tok(),
+      productActionIds: (s.productActions ?? []).map((a) => a.id),
+      sentAt: new Date(now - 20 * 3_600_000).toISOString(),
+      signedAt: new Date(now - 13 * 3_600_000).toISOString(),
+      signerName: `${s.fn} ${s.ln}`,
+      submission,
+    };
+    client.contracts = [contract];
   }
   return client;
 }

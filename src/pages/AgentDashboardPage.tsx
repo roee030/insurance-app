@@ -22,16 +22,16 @@ export function AgentDashboardPage() {
     <main className="mx-auto max-w-5xl space-y-5 p-4 lg:p-6">
       <Link
         to="/"
-        className="inline-flex items-center gap-1.5 text-[13px] text-slate-500 hover:text-slate-700"
+        className="inline-flex items-center gap-1.5 text-[17px] text-slate-500 hover:text-slate-700"
       >
         <ArrowRight className="size-4" /> חזרה לצנרת
       </Link>
 
       <div>
-        <h1 className="text-lg font-semibold tracking-tight text-slate-900">
+        <h1 className="text-xl font-semibold tracking-tight text-slate-900">
           ביצועים
         </h1>
-        <p className="text-xs text-slate-500">
+        <p className="text-base text-slate-500">
           סיכום הפעילות שלך — החודש ובכלל
         </p>
       </div>
@@ -66,13 +66,13 @@ export function AgentDashboardPage() {
 
       {/* trend */}
       <div className="rounded-2xl border border-line bg-surface p-4">
-        <div className="mb-4 flex items-center gap-2 text-sm font-semibold text-slate-800">
+        <div className="mb-4 flex items-center gap-2 text-lg font-semibold text-slate-800">
           <Activity className="size-4 text-cyan-600" /> עסקאות שנסגרו — 6 חודשים אחרונים
         </div>
         <div className="flex items-end gap-3" style={{ height: 120 }}>
           {stats.trend.map((t) => (
             <div key={t.label} className="flex flex-1 flex-col items-center gap-1.5">
-              <span className="text-[11px] font-medium text-slate-600">
+              <span className="text-[15px] font-medium text-slate-600">
                 {t.closedCount || ""}
               </span>
               <motion.div
@@ -81,7 +81,7 @@ export function AgentDashboardPage() {
                 transition={{ type: "spring", stiffness: 220, damping: 24 }}
                 className="w-full rounded-t-md bg-gradient-to-t from-emerald-500 to-emerald-400"
               />
-              <span className="text-[10px] text-slate-400">{t.label}</span>
+              <span className="text-[14px] text-slate-400">{t.label}</span>
             </div>
           ))}
         </div>
@@ -137,10 +137,10 @@ function Kpi({
       <div className={`mb-2 grid size-9 place-items-center rounded-xl ring-1 ${ACCENT_CLS[accent]}`}>
         <Icon className="size-4.5" />
       </div>
-      <div className="text-xl font-semibold tracking-tight text-slate-900 tabular-nums">
+      <div className="text-2xl font-semibold tracking-tight text-slate-900 tabular-nums">
         {value}
       </div>
-      <div className="text-[11px] text-slate-500">{label}</div>
+      <div className="text-[15px] text-slate-500">{label}</div>
     </motion.div>
   );
 }

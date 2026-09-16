@@ -2,6 +2,7 @@ import type {
   AgentProfile,
   AnswerBankEntry,
   Client,
+  CompanyLookupResult,
   Discount,
   DocSignView,
   DocumentField,
@@ -118,12 +119,22 @@ export const api = {
           body: JSON.stringify(data),
         }),
 
+  /** signature → submitted manual fallback — see server/src/routes/clients.ts. */
   advance: (id: string, note?: string) =>
     DEMO
       ? demo(() => orThrow(demoDb.advance(id, note)), 350)
       : req<Client>(`/clients/${id}/advance`, {
           method: "POST",
           body: JSON.stringify({ note }),
+        }),
+
+  /** Create one independent signing contract, scoped to a subset of productActions (omit for "everything"). */
+  createContract: (id: string, productActionIds?: string[], label?: string) =>
+    DEMO
+      ? demo(() => orThrow(demoDb.createContract(id, productActionIds, label)), 350)
+      : req<Client>(`/clients/${id}/contracts`, {
+          method: "POST",
+          body: JSON.stringify({ productActionIds, label }),
         }),
 
   manufacturers: () =>
@@ -133,11 +144,14 @@ export const api = {
           "/manufacturers",
         ),
 
-  /** Freeze a new client-facing report snapshot. */
-  createReport: (clientId: string) =>
+  /** Freeze a new client-facing report snapshot, optionally scoped to a subset of productActions. */
+  createReport: (clientId: string, productActionIds?: string[]) =>
     DEMO
-      ? demo(() => orThrow(demoDb.createReport(clientId)), 400)
-      : req<Report>(`/clients/${clientId}/reports`, { method: "POST" }),
+      ? demo(() => orThrow(demoDb.createReport(clientId, productActionIds)), 400)
+      : req<Report>(`/clients/${clientId}/reports`, {
+          method: "POST",
+          body: JSON.stringify({ productActionIds }),
+        }),
 
   /** Public fetch of a report by its shareable id. */
   getReport: (reportId: string) =>
@@ -237,6 +251,17 @@ export const api = {
           demoDb.deleteDocument(id);
         })
       : req<void>(`/documents/${id}`, { method: "DELETE" }),
+
+  /**
+   * Employer-field autocomplete against the real Israeli company registry.
+   * Server-only (data.gov.il sends no CORS headers, so the demo build —
+   * which has no server to proxy through — just gets no suggestions and
+   * the field stays plain free text, same as before this feature existed).
+   */
+  searchCompanies: (q: string) =>
+    DEMO
+      ? Promise.resolve<CompanyLookupResult[]>([])
+      : req<CompanyLookupResult[]>(`/company-lookup?q=${encodeURIComponent(q)}`),
 
   getDocSign: (token: string) =>
     DEMO

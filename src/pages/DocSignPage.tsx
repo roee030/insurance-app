@@ -59,8 +59,8 @@ export function DocSignPage() {
             <FileText className="size-5" />
           </span>
           <div>
-            <div className="text-[15px] font-bold text-slate-900">{view.title}</div>
-            <div className="text-[12px] text-slate-500">{view.fileName}</div>
+            <div className="text-[19px] font-bold text-slate-900">{view.title}</div>
+            <div className="text-[16px] text-slate-500">{view.fileName}</div>
           </div>
         </header>
 
@@ -69,19 +69,19 @@ export function DocSignPage() {
             <div className="mx-auto mb-3 grid size-14 place-items-center rounded-full bg-emerald-100 text-emerald-600">
               <CheckCircle2 className="size-8" />
             </div>
-            <h1 className="text-lg font-bold text-slate-900">המסמך נחתם בהצלחה</h1>
-            <p className="mt-1 text-[13px] text-slate-500">
+            <h1 className="text-xl font-bold text-slate-900">המסמך נחתם בהצלחה</h1>
+            <p className="mt-1 text-[17px] text-slate-500">
               תודה, {view.signerName}.
             </p>
           </div>
         ) : (
           <>
-            <p className="mt-5 text-[13px] leading-relaxed text-slate-600">
+            <p className="mt-5 text-[17px] leading-relaxed text-slate-600">
               אנא מלא/י את הפרטים הנדרשים וחתום/מי בתחתית לאישור המסמך.
             </p>
 
             {view.fields.length === 0 ? (
-              <p className="mt-4 text-[12px] text-slate-400">
+              <p className="mt-4 text-[16px] text-slate-400">
                 לא הוגדרו שדות למסמך זה עדיין.
               </p>
             ) : (
@@ -90,13 +90,13 @@ export function DocSignPage() {
                   if (f.source !== "manual") {
                     // autofilled fields (שם לקוח/סוכן/תאריך וכד') לא מוצגים כאן — הכנת קרקע בלבד, ההזרקה בפועל ל-PDF עדיין לא מבוצעת.
                     return (
-                      <div key={f.id} className="rounded-lg bg-slate-50 px-3 py-2 text-[12px] text-slate-500">
+                      <div key={f.id} className="rounded-lg bg-slate-50 px-3 py-2 text-[16px] text-slate-500">
                         {f.label} — ימולא אוטומטית
                       </div>
                     );
                   }
                   return (
-                    <label key={f.id} className="block text-[12px] font-medium text-slate-600">
+                    <label key={f.id} className="block text-[16px] font-medium text-slate-600">
                       {f.label}
                       {f.required && <span className="text-red-500"> *</span>}
                       {f.type === "checkbox" ? (
@@ -114,7 +114,7 @@ export function DocSignPage() {
                           onChange={(e) =>
                             setValues((v) => ({ ...v, [f.id]: e.target.value }))
                           }
-                          className="mt-1 h-11 w-full rounded-xl border border-slate-300 px-3 text-[15px] outline-none focus:border-cyan-500 focus:ring-2 focus:ring-cyan-500/20"
+                          className="mt-1 h-11 w-full rounded-xl border border-slate-300 px-3 text-[19px] outline-none focus:border-cyan-500 focus:ring-2 focus:ring-cyan-500/20"
                         />
                       )}
                     </label>
@@ -123,20 +123,20 @@ export function DocSignPage() {
               </div>
             )}
 
-            <label className="mt-4 block text-[12px] font-medium text-slate-600">
+            <label className="mt-4 block text-[16px] font-medium text-slate-600">
               שם מלא לחתימה
               <input
                 value={name}
                 onChange={(e) => setName(e.target.value)}
                 placeholder="הקלד/י את שמך המלא"
-                className="mt-1 h-11 w-full rounded-xl border border-slate-300 px-3 text-[15px] outline-none focus:border-cyan-500 focus:ring-2 focus:ring-cyan-500/20"
+                className="mt-1 h-11 w-full rounded-xl border border-slate-300 px-3 text-[19px] outline-none focus:border-cyan-500 focus:ring-2 focus:ring-cyan-500/20"
               />
             </label>
 
             <button
               onClick={submit}
               disabled={submitting || !canSubmit}
-              className="mt-4 inline-flex h-12 w-full items-center justify-center gap-2 rounded-xl bg-cyan-600 text-[15px] font-semibold text-white transition hover:bg-cyan-500 disabled:opacity-40"
+              className="mt-4 inline-flex h-12 w-full items-center justify-center gap-2 rounded-xl bg-cyan-600 text-[19px] font-semibold text-white transition hover:bg-cyan-500 disabled:opacity-40"
             >
               {submitting ? (
                 <>
@@ -148,7 +148,7 @@ export function DocSignPage() {
                 </>
               )}
             </button>
-            <p className="mt-3 text-center text-[11px] text-slate-400">
+            <p className="mt-3 text-center text-[15px] text-slate-400">
               החתימה הדיגיטלית מהווה אישור משפטי מחייב.
             </p>
           </>
@@ -160,7 +160,7 @@ export function DocSignPage() {
 
 function Centered({ children }: { children: React.ReactNode }) {
   return (
-    <div className="grid min-h-screen place-items-center bg-[#eef1f5] text-sm text-slate-500">
+    <div className="grid min-h-screen place-items-center bg-[#eef1f5] text-lg text-slate-500">
       {children}
     </div>
   );

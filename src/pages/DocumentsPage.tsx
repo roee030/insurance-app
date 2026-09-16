@@ -67,17 +67,17 @@ export function DocumentsPage() {
     <main className="mx-auto max-w-4xl space-y-5 p-4 lg:p-6">
       <Link
         to="/"
-        className="inline-flex items-center gap-1.5 text-[13px] text-slate-500 hover:text-slate-700"
+        className="inline-flex items-center gap-1.5 text-[17px] text-slate-500 hover:text-slate-700"
       >
         <ArrowRight className="size-4" /> חזרה לצנרת
       </Link>
 
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="flex items-center gap-2 text-lg font-semibold tracking-tight text-slate-900">
+          <h1 className="flex items-center gap-2 text-xl font-semibold tracking-tight text-slate-900">
             <FileText className="size-5 text-slate-500" /> מסמכים לחתימה מרחוק
           </h1>
-          <p className="text-xs text-slate-500">
+          <p className="text-base text-slate-500">
             העלאת PDF, הגדרת שדות למילוי/חתימה, ושליחת קישור ללקוח
           </p>
         </div>
@@ -95,16 +95,16 @@ export function DocumentsPage() {
         </div>
       </div>
 
-      <div className="rounded-lg border border-amber-400/25 bg-amber-500/[0.06] px-3 py-2 text-[11px] text-amber-800">
+      <div className="rounded-lg border border-amber-400/25 bg-amber-500/[0.06] px-3 py-2 text-[15px] text-amber-800">
         זו הכנת קרקע בלבד: ניתן להעלות PDF, להגדיר שדות ולשלוח קישור חתימה
         ללקוח. מיקום ויזואלי של השדות על גבי דף ה-PDF, והזרקת הערכים בפועל
         חזרה לתוך הקובץ — עדיין לא מומשו.
       </div>
 
       {loading ? (
-        <div className="py-12 text-center text-sm text-slate-400">טוען…</div>
+        <div className="py-12 text-center text-lg text-slate-400">טוען…</div>
       ) : documents.length === 0 ? (
-        <div className="rounded-2xl border border-dashed border-line p-10 text-center text-sm text-slate-400">
+        <div className="rounded-2xl border border-dashed border-line p-10 text-center text-lg text-slate-400">
           אין עדיין מסמכים. העלה PDF כדי להתחיל.
         </div>
       ) : (
@@ -145,20 +145,20 @@ function DocumentCard({ doc }: { doc: SignDocument }) {
     <div className="rounded-2xl border border-line bg-surface p-4">
       <div className="mb-3 flex items-center justify-between gap-2">
         <div className="min-w-0">
-          <div className="truncate text-[13px] font-semibold text-slate-800">{doc.title}</div>
-          <div className="text-[11px] text-slate-500">{doc.fileName}</div>
+          <div className="truncate text-[17px] font-semibold text-slate-800">{doc.title}</div>
+          <div className="text-[15px] text-slate-500">{doc.fileName}</div>
         </div>
         <div className="flex shrink-0 items-center gap-1.5">
           {doc.completedAt ? (
-            <span className="rounded-full bg-emerald-500/10 px-2.5 py-1 text-[11px] font-medium text-emerald-700">
+            <span className="rounded-full bg-emerald-500/10 px-2.5 py-1 text-[15px] font-medium text-emerald-700">
               נחתם ע״י {doc.signerName}
             </span>
           ) : doc.sentAt ? (
-            <span className="rounded-full bg-cyan-500/10 px-2.5 py-1 text-[11px] font-medium text-cyan-700">
+            <span className="rounded-full bg-cyan-500/10 px-2.5 py-1 text-[15px] font-medium text-cyan-700">
               נשלח, ממתין לחתימה
             </span>
           ) : (
-            <span className="rounded-full bg-slate-100 px-2.5 py-1 text-[11px] font-medium text-slate-500">
+            <span className="rounded-full bg-slate-100 px-2.5 py-1 text-[15px] font-medium text-slate-500">
               טיוטה
             </span>
           )}
@@ -178,12 +178,12 @@ function DocumentCard({ doc }: { doc: SignDocument }) {
               value={f.label}
               onChange={(e) => patchField(f.id, { label: e.target.value })}
               placeholder="תווית שדה (לדוגמה: חתימת לקוח)"
-              className="h-8 flex-1 rounded-md border border-line bg-white px-2 text-[12px] text-slate-900 outline-none placeholder:text-slate-400"
+              className="h-8 flex-1 rounded-md border border-line bg-white px-2 text-[16px] text-slate-900 outline-none placeholder:text-slate-400"
             />
             <select
               value={f.type}
               onChange={(e) => patchField(f.id, { type: e.target.value as DocumentField["type"] })}
-              className="h-8 rounded-md border border-line bg-white px-1.5 text-[11px] text-slate-600"
+              className="h-8 rounded-md border border-line bg-white px-1.5 text-[15px] text-slate-600"
             >
               {FIELD_TYPES.map((t) => (
                 <option key={t.value} value={t.value}>
@@ -196,7 +196,7 @@ function DocumentCard({ doc }: { doc: SignDocument }) {
               onChange={(e) =>
                 patchField(f.id, { source: e.target.value as DocumentField["source"] })
               }
-              className="h-8 rounded-md border border-line bg-white px-1.5 text-[11px] text-slate-600"
+              className="h-8 rounded-md border border-line bg-white px-1.5 text-[15px] text-slate-600"
             >
               {FIELD_SOURCES.map((s) => (
                 <option key={s.value} value={s.value}>
@@ -204,7 +204,7 @@ function DocumentCard({ doc }: { doc: SignDocument }) {
                 </option>
               ))}
             </select>
-            <label className="flex items-center gap-1 text-[11px] text-slate-500">
+            <label className="flex items-center gap-1 text-[15px] text-slate-500">
               <input
                 type="checkbox"
                 checked={f.required}
@@ -222,7 +222,7 @@ function DocumentCard({ doc }: { doc: SignDocument }) {
         ))}
         <button
           onClick={addField}
-          className="inline-flex items-center gap-1 text-[11px] text-cyan-700 hover:underline"
+          className="inline-flex items-center gap-1 text-[15px] text-cyan-700 hover:underline"
         >
           <Plus className="size-3" /> הוסף שדה
         </button>
@@ -252,7 +252,7 @@ function DocumentCard({ doc }: { doc: SignDocument }) {
               setTimeout(() => setCopied(false), 1500);
             }}
             className={cn(
-              "inline-flex items-center gap-1.5 rounded-lg border border-line bg-white px-3 py-1.5 text-[12px] text-slate-600 hover:border-cyan-500/50",
+              "inline-flex items-center gap-1.5 rounded-lg border border-line bg-white px-3 py-1.5 text-[16px] text-slate-600 hover:border-cyan-500/50",
             )}
           >
             <Copy className="size-3.5" /> {copied ? "הועתק!" : "העתק קישור"}

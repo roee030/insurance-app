@@ -229,34 +229,76 @@ clientsRouter.post("/:id/needs-assessment", async (req, res) => {
 });
 
 /**
- * POST /api/clients/:id/advance — move one stage forward manually.
- * authorized → signature generates the client's online-signing link;
- * signature → submitted is normally driven by the client actually signing
- * (see routes/signature.ts), this is the agent-side manual fallback.
+ * POST /api/clients/:id/advance — signature → submitted manual fallback.
+ * Normally driven by the client actually signing every contract (see
+ * routes/signature.ts); this lets the agent force-close the record anyway,
+ * stamping a success submission on any contract still missing one.
  */
-const STAGE_NEXT: Partial<Record<Client["stage"], Client["stage"]>> = {
-  authorized: "signature",
-  signature: "submitted",
-};
-
 clientsRouter.post("/:id/advance", async (req, res) => {
   const note = typeof req.body?.note === "string" ? req.body.note : undefined;
   const updated = await updateDB((db) => {
     const client = db.clients.find((c) => c.id === req.params.id);
-    if (!client) return null;
-    const next = STAGE_NEXT[client.stage];
-    if (next) setStage(client, next, note);
-    if (next === "signature" && !client.signRequest) {
-      client.signRequest = {
-        token: crypto.randomUUID().replace(/-/g, "").slice(0, 14),
-        sentAt: new Date().toISOString(),
-      };
+    if (!client || client.stage !== "signature") return null;
+    for (const contract of client.contracts ?? []) {
+      if (!contract.submission) {
+        contract.submission = { status: "success", at: new Date().toISOString() };
+      }
     }
-    if (next === "submitted" && !client.submission) {
-      client.submission = { status: "success", at: new Date().toISOString() };
-    }
+    setStage(client, "submitted", note);
     return client;
   });
   if (!updated) return res.status(404).json({ error: "not found" });
   res.json(updated);
+});
+
+const createContractSchema = z.object({
+  productActionIds: z.array(z.string()).optional(),
+  label: z.string().optional(),
+});
+
+/**
+ * POST /api/clients/:id/contracts — create ONE independent signing contract
+ * covering a chosen subset of the client's productActions (defaults to all
+ * of them, matching the simple one-click "send everything" flow). A client
+ * can have several of these — "כל דבר זה חוזה אחד בפני עצמו" — each with its
+ * own token, signature and submission outcome (see routes/signature.ts).
+ * The first contract ever created moves the client out of "authorized".
+ */
+clientsRouter.post("/:id/contracts", async (req, res) => {
+  const parsed = createContractSchema.safeParse(req.body);
+  if (!parsed.success) {
+    return res.status(422).json({ error: "invalid", issues: parsed.error.issues });
+  }
+  const updated = await updateDB((db) => {
+    const client = db.clients.find((c) => c.id === req.params.id);
+    if (!client) return null;
+    // Default (no explicit selection) = every action not already covered by
+    // an existing contract — never re-bundles an action that's already on
+    // its own contract.
+    const coveredIds = new Set((client.contracts ?? []).flatMap((c) => c.productActionIds));
+    const uncoveredIds = (client.productActions ?? [])
+      .map((a) => a.id)
+      .filter((id) => !coveredIds.has(id));
+    const productActionIds =
+      parsed.data.productActionIds && parsed.data.productActionIds.length > 0
+        ? parsed.data.productActionIds
+        : uncoveredIds;
+    if (productActionIds.length === 0) return null;
+
+    client.contracts = [
+      ...(client.contracts ?? []),
+      {
+        id: crypto.randomUUID(),
+        token: crypto.randomUUID().replace(/-/g, "").slice(0, 14),
+        productActionIds,
+        label: parsed.data.label,
+        sentAt: new Date().toISOString(),
+      },
+    ];
+    if (client.stage === "authorized") setStage(client, "signature");
+    client.updatedAt = new Date().toISOString();
+    return client;
+  });
+  if (!updated) return res.status(404).json({ error: "not found or nothing to contract" });
+  res.status(201).json(updated);
 });

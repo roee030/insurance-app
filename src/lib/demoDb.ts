@@ -8,6 +8,7 @@ import type {
   AgentProfile,
   AnswerBankEntry,
   Client,
+  Contract,
   Discount,
   DocSignView,
   DocumentField,
@@ -33,7 +34,7 @@ import type { NewClientInput } from "./api";
  * memory). It does NOT sync across different browsers/devices — there's no
  * server — so this is a single-browser demo, not real multi-user state.
  */
-const STORAGE_KEY = "insurance-app-demo-v2";
+const STORAGE_KEY = "insurance-app-demo-v3";
 
 function loadClients(): Client[] {
   try {
@@ -149,9 +150,17 @@ function weightedAvgFee(holdings: { balance?: number; feeAccumulation?: number }
   return Math.round((weighted / total) * 100) / 100;
 }
 
-function buildSnapshot(client: Client): ReportSnapshot {
+/**
+ * `productActionIds`, when given, scopes the "ההמלצה שלנו" section to just
+ * that subset — see server/src/routes/reports.ts for why the holdings table
+ * always shows everything regardless.
+ */
+function buildSnapshot(client: Client, productActionIds?: string[]): ReportSnapshot {
   const holdings = client.mislaka?.polisot ?? [];
   const accumulation = holdings.reduce((s, h) => s + (h.balance ?? 0), 0);
+  const productActions = productActionIds
+    ? (client.productActions ?? []).filter((a) => productActionIds.includes(a.id))
+    : client.productActions;
   return {
     clientName: `${client.firstName} ${client.lastName}`,
     personId: client.personId,
@@ -166,7 +175,7 @@ function buildSnapshot(client: Client): ReportSnapshot {
       productCount: holdings.length,
       avgFeeAccumulation: weightedAvgFee(holdings),
     },
-    productActions: client.productActions,
+    productActions,
     needsAssessment: client.needsAssessment,
     disclosedManufacturers: settings.manufacturers.filter(
       (m) => m.commissionPercent >= DISCLOSURE_THRESHOLD_PERCENT,
@@ -174,23 +183,25 @@ function buildSnapshot(client: Client): ReportSnapshot {
   };
 }
 
-function signView(client: Client): SignView {
+function signView(client: Client, contract: Contract): SignView {
+  const ids = new Set(contract.productActionIds);
   return {
     clientName: `${client.firstName} ${client.lastName}`,
     personId: client.personId,
     agencyName: AGENCY_NAME,
     agentName: AGENT_NAME,
-    productActions: client.productActions ?? [],
-    sentAt: client.signRequest?.sentAt,
-    signedAt: client.signRequest?.signedAt ?? null,
-    signerName: client.signRequest?.signerName ?? null,
+    label: contract.label,
+    productActions: (client.productActions ?? []).filter((a) => ids.has(a.id)),
+    sentAt: contract.sentAt,
+    signedAt: contract.signedAt ?? null,
+    signerName: contract.signerName ?? null,
   };
 }
 
 /** Same real check the server runs — see routes/signature.ts for why. */
-function submitToInsuranceCompanies(client: Client): Submission {
+function submitContract(productActionCount: number): Submission {
   const at = new Date().toISOString();
-  if (!client.productActions || client.productActions.length === 0) {
+  if (productActionCount === 0) {
     return { status: "failed", at, note: "לא נבחרו מוצרים לשליחה — אין מה לשלוח לחברה" };
   }
   return { status: "success", at };
@@ -271,28 +282,54 @@ export const demoDb = {
     return c;
   },
 
+  /** signature → submitted manual fallback — stamps a success submission on any contract still missing one. */
   advance: (id: string, note?: string) => {
     const c = find(id);
-    if (!c) return null;
+    if (!c || c.stage !== "signature") return null;
     const idx = clients.findIndex((x) => x.id === id);
+    for (const contract of c.contracts ?? []) {
+      if (!contract.submission) {
+        contract.submission = { status: "success", at: new Date().toISOString() };
+      }
+    }
     const updated = advanceStage(c, note);
-    if (updated.stage === "signature" && !updated.signRequest) {
-      updated.signRequest = {
-        token: crypto.randomUUID().replace(/-/g, "").slice(0, 14),
-        sentAt: new Date().toISOString(),
-      };
-    }
-    if (updated.stage === "submitted" && !updated.submission) {
-      updated.submission = submitToInsuranceCompanies(updated);
-    }
     clients[idx] = updated;
     persist();
     return updated;
   },
 
+  /** Create one independent signing contract, scoped to a subset of productActions (all not-yet-covered ones, if omitted). */
+  createContract: (id: string, productActionIds?: string[], label?: string) => {
+    const c = find(id);
+    if (!c) return null;
+    const coveredIds = new Set((c.contracts ?? []).flatMap((k) => k.productActionIds));
+    const uncoveredIds = (c.productActions ?? [])
+      .map((a) => a.id)
+      .filter((aid) => !coveredIds.has(aid));
+    const ids =
+      productActionIds && productActionIds.length > 0 ? productActionIds : uncoveredIds;
+    if (ids.length === 0) return null;
+
+    const contract: Contract = {
+      id: crypto.randomUUID(),
+      token: crypto.randomUUID().replace(/-/g, "").slice(0, 14),
+      productActionIds: ids,
+      label,
+      sentAt: new Date().toISOString(),
+    };
+    c.contracts = [...(c.contracts ?? []), contract];
+    c.updatedAt = new Date().toISOString();
+    if (c.stage === "authorized") {
+      const idx = clients.findIndex((x) => x.id === id);
+      clients[idx] = advanceStage(c);
+    }
+    persist();
+    return find(id)!;
+  },
+
   manufacturers: () => DEMO_MANUFACTURERS,
 
-  createReport: (clientId: string): Report | null => {
+  createReport: (clientId: string, productActionIds?: string[]): Report | null => {
     const c = find(clientId);
     if (!c) return null;
     const version = (c.reports?.length ?? 0) + 1;
@@ -300,7 +337,7 @@ export const demoDb = {
       id: crypto.randomUUID().replace(/-/g, "").slice(0, 12),
       version,
       createdAt: new Date().toISOString(),
-      snapshot: buildSnapshot(c),
+      snapshot: buildSnapshot(c, productActionIds),
     };
     c.reports = [report, ...(c.reports ?? [])];
     persist();
@@ -316,28 +353,36 @@ export const demoDb = {
   },
 
   getSignRequest: (token: string): SignView | null => {
-    const c = clients.find((x) => x.signRequest?.token === token);
-    return c ? signView(c) : null;
+    for (const c of clients) {
+      const contract = c.contracts?.find((k) => k.token === token);
+      if (contract) return signView(c, contract);
+    }
+    return null;
   },
 
   signDocument: (token: string, signerName: string): SignView | null => {
-    const c = clients.find((x) => x.signRequest?.token === token);
-    if (!c || !c.signRequest) return null;
-    if (!c.signRequest.signedAt) {
-      c.signRequest.signedAt = new Date().toISOString();
-      c.signRequest.signerName = signerName;
-      c.submission = submitToInsuranceCompanies(c);
-      if (c.stage === "signature") {
-        const idx = clients.findIndex((x) => x.id === c.id);
-        const note =
-          c.submission.status === "success"
-            ? "הלקוח חתם דיגיטלית — נשלח לחברה בהצלחה"
-            : `הלקוח חתם דיגיטלית — השליחה לחברה נכשלה: ${c.submission.note}`;
-        clients[idx] = advanceStage(c, note);
+    for (const c of clients) {
+      const contract = c.contracts?.find((k) => k.token === token);
+      if (!contract) continue;
+      if (!contract.signedAt) {
+        contract.signedAt = new Date().toISOString();
+        contract.signerName = signerName;
+        contract.submission = submitContract(contract.productActionIds.length);
+
+        const allSigned = (c.contracts ?? []).every((k) => k.signedAt);
+        if (allSigned && c.stage === "signature") {
+          const idx = clients.findIndex((x) => x.id === c.id);
+          const anyFailed = (c.contracts ?? []).some((k) => k.submission?.status === "failed");
+          const note = anyFailed
+            ? "הלקוח חתם על כל החוזים — חלק מהשליחות לחברה נכשלו"
+            : "הלקוח חתם על כל החוזים — נשלח לחברה בהצלחה";
+          clients[idx] = advanceStage(c, note);
+        }
+        persist();
       }
-      persist();
+      return signView(find(c.id)!, contract);
     }
-    return signView(find(c.id)!);
+    return null;
   },
 
   getSettings: () => settings,

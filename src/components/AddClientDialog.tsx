@@ -40,17 +40,17 @@ function Field({
 }) {
   return (
     <label className="flex flex-col gap-1.5">
-      <span className="text-xs font-medium text-slate-500">{label}</span>
+      <span className="text-base font-medium text-slate-500">{label}</span>
       <input
         name={name}
         dir={dir}
         placeholder={placeholder}
         className={cn(
-          "h-10 rounded-xl border bg-white px-3 text-sm text-slate-900 outline-none transition placeholder:text-slate-400 focus:border-emerald-500/60 focus:ring-2 focus:ring-emerald-500/20",
+          "h-10 rounded-xl border bg-white px-3 text-lg text-slate-900 outline-none transition placeholder:text-slate-400 focus:border-emerald-500/60 focus:ring-2 focus:ring-emerald-500/20",
           error ? "border-red-500/60" : "border-line",
         )}
       />
-      {error && <span className="text-[11px] text-red-500">{error}</span>}
+      {error && <span className="text-[15px] text-red-500">{error}</span>}
     </label>
   );
 }
@@ -129,8 +129,8 @@ export function AddClientDialog({ onClose }: { onClose: () => void }) {
               <UserPlus className="size-4.5" />
             </div>
             <div>
-              <h2 className="text-base font-semibold text-slate-900">לקוח חדש</h2>
-              <p className="text-[11px] text-slate-500">
+              <h2 className="text-lg font-semibold text-slate-900">לקוח חדש</h2>
+              <p className="text-[15px] text-slate-500">
                 הזנת פרטים והעלאת קובץ נתוני מסלקה
               </p>
             </div>
@@ -162,12 +162,12 @@ export function AddClientDialog({ onClose }: { onClose: () => void }) {
           />
 
           <div className="col-span-2">
-            <span className="mb-1.5 block text-xs font-medium text-slate-500">
+            <span className="mb-1.5 block text-base font-medium text-slate-500">
               קובץ מסלקה (JSON)
             </span>
             <label
               className={cn(
-                "flex h-11 cursor-pointer items-center gap-2 rounded-xl border border-dashed px-3 text-[13px] transition",
+                "flex h-11 cursor-pointer items-center gap-2 rounded-xl border border-dashed px-3 text-[17px] transition",
                 errors.file
                   ? "border-red-500/60 text-red-500"
                   : fileName
@@ -192,13 +192,13 @@ export function AddClientDialog({ onClose }: { onClose: () => void }) {
               />
             </label>
             {errors.file && (
-              <span className="mt-1 block text-[11px] text-red-500">{errors.file}</span>
+              <span className="mt-1 block text-[15px] text-red-500">{errors.file}</span>
             )}
 
             <button
               type="button"
               onClick={() => setShowSample((v) => !v)}
-              className="mt-1.5 inline-flex items-center gap-1 text-[11px] text-slate-400 hover:text-slate-600"
+              className="mt-1.5 inline-flex items-center gap-1 text-[15px] text-slate-400 hover:text-slate-600"
             >
               <ChevronDown className={cn("size-3 transition-transform", showSample && "rotate-180")} />
               איך אמור להיראות הקובץ?
@@ -206,7 +206,7 @@ export function AddClientDialog({ onClose }: { onClose: () => void }) {
             {showSample && (
               <pre
                 dir="ltr"
-                className="mt-2 max-h-40 overflow-auto rounded-lg bg-slate-900 p-3 text-[11px] leading-relaxed text-emerald-300"
+                className="mt-2 max-h-40 overflow-auto rounded-lg bg-slate-900 p-3 text-[15px] leading-relaxed text-emerald-300"
               >
                 <FileJson className="mb-1 inline size-3.5" /> {"\n"}
                 {SAMPLE_JSON}
@@ -215,13 +215,13 @@ export function AddClientDialog({ onClose }: { onClose: () => void }) {
           </div>
 
           {errors.form && (
-            <div className="col-span-2 rounded-lg border border-red-500/30 bg-red-500/10 px-3 py-2 text-[12px] text-red-600">
+            <div className="col-span-2 rounded-lg border border-red-500/30 bg-red-500/10 px-3 py-2 text-[16px] text-red-600">
               {errors.form}
             </div>
           )}
 
           <div className="col-span-2 mt-2 flex items-center justify-between">
-            <p className="text-[11px] text-slate-500">
+            <p className="text-[15px] text-slate-500">
               הנתונים ייטענו מיידית — ללא המתנה.
             </p>
             <Button type="submit" disabled={pending} className="min-w-40">

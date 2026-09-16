@@ -43,16 +43,16 @@ export function SettingsPage() {
     <main className="mx-auto max-w-4xl space-y-5 p-4 lg:p-6">
       <Link
         to="/"
-        className="inline-flex items-center gap-1.5 text-[13px] text-slate-500 hover:text-slate-700"
+        className="inline-flex items-center gap-1.5 text-[17px] text-slate-500 hover:text-slate-700"
       >
         <ArrowRight className="size-4" /> חזרה לצנרת
       </Link>
 
       <div>
-        <h1 className="flex items-center gap-2 text-lg font-semibold tracking-tight text-slate-900">
+        <h1 className="flex items-center gap-2 text-xl font-semibold tracking-tight text-slate-900">
           <SettingsIcon className="size-5 text-slate-500" /> הגדרות
         </h1>
-        <p className="text-xs text-slate-500">
+        <p className="text-base text-slate-500">
           פרופיל סוכן, בנק תשובות, ניהול הנחות וגילוי יצרנים עיקריים
         </p>
       </div>
@@ -65,7 +65,7 @@ export function SettingsPage() {
               key={t.id}
               onClick={() => setTab(t.id)}
               className={cn(
-                "inline-flex items-center gap-1.5 rounded-lg px-3 py-2 text-[13px] font-medium transition",
+                "inline-flex items-center gap-1.5 rounded-lg px-3 py-2 text-[17px] font-medium transition",
                 tab === t.id
                   ? "bg-cyan-500/10 text-cyan-700"
                   : "text-slate-500 hover:bg-slate-100",
@@ -78,7 +78,7 @@ export function SettingsPage() {
       </div>
 
       {loading || !settings ? (
-        <div className="py-12 text-center text-sm text-slate-400">טוען…</div>
+        <div className="py-12 text-center text-lg text-slate-400">טוען…</div>
       ) : (
         <>
           {tab === "profile" && <ProfileTab profile={settings.agentProfile} />}
@@ -108,10 +108,10 @@ function ProfileTab({ profile }: { profile: AgentProfile }) {
 
   return (
     <div className="rounded-2xl border border-line bg-surface p-4">
-      <div className="mb-4 text-sm font-semibold text-slate-800">
+      <div className="mb-4 text-lg font-semibold text-slate-800">
         פרטי הסוכן והסוכנות
       </div>
-      <p className="mb-4 text-[11px] text-slate-500">
+      <p className="mb-4 text-[15px] text-slate-500">
         מוצגים בכל דוח ללקוח ובעמוד החתימה — מזהים אותך מול הלקוח.
       </p>
       <div className="grid grid-cols-2 gap-3">
@@ -137,7 +137,7 @@ function ProfileTab({ profile }: { profile: AgentProfile }) {
         />
       </div>
       <div className="mt-3">
-        <div className="mb-1.5 text-[11px] font-medium text-slate-500">
+        <div className="mb-1.5 text-[15px] font-medium text-slate-500">
           תיאור קצר / ביו
         </div>
         <textarea
@@ -146,7 +146,7 @@ function ProfileTab({ profile }: { profile: AgentProfile }) {
           onBlur={(e) => patch({ bio: e.target.value })}
           rows={3}
           placeholder="ניסיון, התמחויות, מילות פתיחה לדוח..."
-          className="w-full resize-y rounded-lg border border-line bg-white px-3 py-2 text-[13px] leading-relaxed text-slate-900 outline-none placeholder:text-slate-400 focus:border-cyan-500/60"
+          className="w-full resize-y rounded-lg border border-line bg-white px-3 py-2 text-[17px] leading-relaxed text-slate-900 outline-none placeholder:text-slate-400 focus:border-cyan-500/60"
         />
       </div>
     </div>
@@ -167,13 +167,13 @@ function LabeledInput({
   const [v, setV] = useState(value);
   return (
     <div>
-      <div className="mb-1.5 text-[11px] font-medium text-slate-500">{label}</div>
+      <div className="mb-1.5 text-[15px] font-medium text-slate-500">{label}</div>
       <input
         value={v}
         placeholder={placeholder}
         onChange={(e) => setV(e.target.value)}
         onBlur={() => v !== value && onSave(v.trim())}
-        className="h-9 w-full rounded-lg border border-line bg-white px-3 text-[13px] text-slate-900 outline-none placeholder:text-slate-400 focus:border-cyan-500/60"
+        className="h-9 w-full rounded-lg border border-line bg-white px-3 text-[17px] text-slate-900 outline-none placeholder:text-slate-400 focus:border-cyan-500/60"
       />
     </div>
   );
@@ -193,7 +193,7 @@ function AnswerBankTab({ entries }: { entries: AnswerBankEntry[] }) {
 
   return (
     <div className="space-y-2">
-      <p className="mb-1 text-[11px] text-slate-500">
+      <p className="mb-1 text-[15px] text-slate-500">
         קטעי נימוקים/תשובות שחוזרים על עצמם — ניתן להוסיף אותם ישירות לשדה
         ״הנמקה״ בבירור הצרכים של כל לקוח.
       </p>
@@ -213,7 +213,7 @@ function AnswerBankTab({ entries }: { entries: AnswerBankEntry[] }) {
       ) : (
         <button
           onClick={() => setAdding(emptyAnswer())}
-          className="inline-flex items-center gap-1.5 rounded-lg border border-dashed border-line px-3 py-2 text-[12px] text-slate-500 hover:border-cyan-500/50 hover:text-cyan-700"
+          className="inline-flex items-center gap-1.5 rounded-lg border border-dashed border-line px-3 py-2 text-[16px] text-slate-500 hover:border-cyan-500/50 hover:text-cyan-700"
         >
           <Plus className="size-3.5" /> הוסף קטע תשובה
         </button>
@@ -247,12 +247,12 @@ function AnswerCard({
           value={draft.title}
           onChange={(e) => patch({ title: e.target.value })}
           placeholder="כותרת קצרה (לדוגמה: ׳דמי ניהול נמוכים משמעותית׳)"
-          className="h-9 flex-1 rounded-lg border border-line bg-white px-3 text-[13px] font-medium text-slate-900 outline-none placeholder:text-slate-400 focus:border-cyan-500/60"
+          className="h-9 flex-1 rounded-lg border border-line bg-white px-3 text-[17px] font-medium text-slate-900 outline-none placeholder:text-slate-400 focus:border-cyan-500/60"
         />
         <select
           value={draft.productType ?? ""}
           onChange={(e) => patch({ productType: e.target.value || undefined })}
-          className="h-9 rounded-lg border border-line bg-white px-2 text-[12px] text-slate-600 outline-none"
+          className="h-9 rounded-lg border border-line bg-white px-2 text-[16px] text-slate-600 outline-none"
         >
           <option value="">כל סוגי המוצר</option>
           {PRODUCT_TYPES.map((p) => (
@@ -273,7 +273,7 @@ function AnswerCard({
         onChange={(e) => patch({ text: e.target.value })}
         rows={2}
         placeholder="נוסח הקטע שיוכנס להנמקה..."
-        className="w-full resize-y rounded-lg border border-line bg-white px-3 py-2 text-[13px] leading-relaxed text-slate-900 outline-none placeholder:text-slate-400 focus:border-cyan-500/60"
+        className="w-full resize-y rounded-lg border border-line bg-white px-3 py-2 text-[17px] leading-relaxed text-slate-900 outline-none placeholder:text-slate-400 focus:border-cyan-500/60"
       />
       {editing && (
         <div className="mt-2 flex justify-end">
@@ -304,7 +304,7 @@ function DiscountsTab({ discounts }: { discounts: Discount[] }) {
 
   return (
     <div className="space-y-2">
-      <p className="mb-1 text-[11px] text-slate-500">
+      <p className="mb-1 text-[15px] text-slate-500">
         הנחות אישיות של הסוכן או הנחות מערכת של החברה, לפי שלבים (חודשים
         מתחילת הפוליסה) עם אחוז שונה בכל שלב.
       </p>
@@ -324,7 +324,7 @@ function DiscountsTab({ discounts }: { discounts: Discount[] }) {
       ) : (
         <button
           onClick={() => setAdding(emptyDiscount())}
-          className="inline-flex items-center gap-1.5 rounded-lg border border-dashed border-line px-3 py-2 text-[12px] text-slate-500 hover:border-cyan-500/50 hover:text-cyan-700"
+          className="inline-flex items-center gap-1.5 rounded-lg border border-dashed border-line px-3 py-2 text-[16px] text-slate-500 hover:border-cyan-500/50 hover:text-cyan-700"
         >
           <Plus className="size-3.5" /> הוסף הנחה
         </button>
@@ -372,7 +372,7 @@ function DiscountCard({
           value={draft.name}
           onChange={(e) => patch({ name: e.target.value })}
           placeholder="שם ההנחה"
-          className="h-9 flex-1 rounded-lg border border-line bg-white px-3 text-[13px] font-medium text-slate-900 outline-none placeholder:text-slate-400 focus:border-cyan-500/60"
+          className="h-9 flex-1 rounded-lg border border-line bg-white px-3 text-[17px] font-medium text-slate-900 outline-none placeholder:text-slate-400 focus:border-cyan-500/60"
         />
         <div className="flex gap-1">
           {(["personal", "system"] as const).map((s) => (
@@ -380,7 +380,7 @@ function DiscountCard({
               key={s}
               onClick={() => patch({ scope: s })}
               className={cn(
-                "rounded-lg border px-2.5 py-1.5 text-[12px]",
+                "rounded-lg border px-2.5 py-1.5 text-[16px]",
                 draft.scope === s
                   ? "border-violet-500/50 bg-violet-500/10 text-violet-800"
                   : "border-line bg-white text-slate-500",
@@ -393,7 +393,7 @@ function DiscountCard({
         <select
           value={draft.company ?? ""}
           onChange={(e) => patch({ company: e.target.value || undefined })}
-          className="h-9 rounded-lg border border-line bg-white px-2 text-[12px] text-slate-600 outline-none"
+          className="h-9 rounded-lg border border-line bg-white px-2 text-[16px] text-slate-600 outline-none"
         >
           <option value="">כל החברות</option>
           {COMPANIES.map((c) => (
@@ -412,7 +412,7 @@ function DiscountCard({
 
       <div className="space-y-1.5">
         {draft.tiers.map((t) => (
-          <div key={t.id} className="flex items-center gap-2 text-[12px]">
+          <div key={t.id} className="flex items-center gap-2 text-[16px]">
             <span className="text-slate-500">מחודש</span>
             <input
               type="number"
@@ -452,7 +452,7 @@ function DiscountCard({
         ))}
         <button
           onClick={addTier}
-          className="inline-flex items-center gap-1 text-[11px] text-cyan-700 hover:underline"
+          className="inline-flex items-center gap-1 text-[15px] text-cyan-700 hover:underline"
         >
           <Plus className="size-3" /> הוסף שלב
         </button>
@@ -483,7 +483,7 @@ function ManufacturersTab({ manufacturers }: { manufacturers: PrimaryManufacture
 
   return (
     <div className="space-y-2">
-      <div className="rounded-lg border border-amber-400/25 bg-amber-500/[0.06] px-3 py-2 text-[11px] text-amber-800">
+      <div className="rounded-lg border border-amber-400/25 bg-amber-500/[0.06] px-3 py-2 text-[15px] text-amber-800">
         חובה רגולטורית: כאשר עמלה מיצרן מסוים בענף מסוים עולה על 40%, יש
         לגלות זאת ללקוח בדוח. שורות עם עמלה 40% ומעלה יופיעו אוטומטית בדוח
         הלקוח.
@@ -504,7 +504,7 @@ function ManufacturersTab({ manufacturers }: { manufacturers: PrimaryManufacture
       ) : (
         <button
           onClick={() => setAdding(emptyManufacturer())}
-          className="inline-flex items-center gap-1.5 rounded-lg border border-dashed border-line px-3 py-2 text-[12px] text-slate-500 hover:border-cyan-500/50 hover:text-cyan-700"
+          className="inline-flex items-center gap-1.5 rounded-lg border border-dashed border-line px-3 py-2 text-[16px] text-slate-500 hover:border-cyan-500/50 hover:text-cyan-700"
         >
           <Plus className="size-3.5" /> הוסף יצרן
         </button>
@@ -536,7 +536,7 @@ function ManufacturerCard({
       <select
         value={draft.company}
         onChange={(e) => patch({ company: e.target.value })}
-        className="h-9 flex-1 rounded-lg border border-line bg-white px-2 text-[13px] text-slate-900 outline-none"
+        className="h-9 flex-1 rounded-lg border border-line bg-white px-2 text-[17px] text-slate-900 outline-none"
       >
         <option value="">חברה</option>
         {COMPANIES.map((c) => (
@@ -548,7 +548,7 @@ function ManufacturerCard({
       <select
         value={draft.branch}
         onChange={(e) => patch({ branch: e.target.value })}
-        className="h-9 rounded-lg border border-line bg-white px-2 text-[13px] text-slate-900 outline-none"
+        className="h-9 rounded-lg border border-line bg-white px-2 text-[17px] text-slate-900 outline-none"
       >
         <option value="">ענף</option>
         {BRANCHES.map((b) => (
@@ -564,11 +564,11 @@ function ManufacturerCard({
           value={draft.commissionPercent}
           onChange={(e) => patch({ commissionPercent: Number(e.target.value) })}
           className={cn(
-            "h-9 w-20 rounded-lg border bg-white px-2 text-[13px] text-slate-900 outline-none",
+            "h-9 w-20 rounded-lg border bg-white px-2 text-[17px] text-slate-900 outline-none",
             draft.commissionPercent >= 40 ? "border-amber-400" : "border-line",
           )}
         />
-        <span className="text-[12px] text-slate-500">% עמלה</span>
+        <span className="text-[16px] text-slate-500">% עמלה</span>
       </div>
       <button
         onClick={() => void onRemove(m.id)}

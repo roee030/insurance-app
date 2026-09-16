@@ -1,5 +1,5 @@
 import type { Client } from "./types";
-import { isStuck, isTerminal } from "./pipeline";
+import { clientOverallSubmission, isStuck, isTerminal } from "./pipeline";
 
 /** True if `iso` falls in the same calendar month+year as `ref` (default: now). */
 function isSameMonth(iso: string, ref = new Date()): boolean {
@@ -58,7 +58,7 @@ export function computeAgentStats(clients: Client[]): AgentStats {
   });
 
   const monthFailedCount = closedThisMonth.filter(
-    (c) => c.submission?.status === "failed",
+    (c) => clientOverallSubmission(c) === "failed",
   ).length;
 
   const closedAll = clients.filter((c) => c.stage === "submitted");
@@ -77,7 +77,7 @@ export function computeAgentStats(clients: Client[]): AgentStats {
     const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
     const inMonth = closedAll.filter((c) => {
       const at = closedAt(c);
-      return at != null && isSameMonth(at, d) && c.submission?.status !== "failed";
+      return at != null && isSameMonth(at, d) && clientOverallSubmission(c) !== "failed";
     });
     trend.push({
       label: `${HEBREW_MONTHS[d.getMonth()]} ${d.getFullYear()}`,
@@ -92,14 +92,14 @@ export function computeAgentStats(clients: Client[]): AgentStats {
     monthClosedCount: closedThisMonth.length - monthFailedCount,
     monthFailedCount,
     monthPremium: closedThisMonth
-      .filter((c) => c.submission?.status !== "failed")
+      .filter((c) => clientOverallSubmission(c) !== "failed")
       .reduce((s, c) => s + dealPremium(c), 0),
     monthTransferredBalance: closedThisMonth
-      .filter((c) => c.submission?.status !== "failed")
+      .filter((c) => clientOverallSubmission(c) !== "failed")
       .reduce((s, c) => s + dealTransferredBalance(c), 0),
     activeCount: clients.filter((c) => !isTerminal(c.stage)).length,
     stuckCount: clients.filter(isStuck).length,
-    totalClosedCount: closedAll.filter((c) => c.submission?.status !== "failed").length,
+    totalClosedCount: closedAll.filter((c) => clientOverallSubmission(c) !== "failed").length,
     avgDaysToClose:
       daysToClose.length > 0
         ? Math.round((daysToClose.reduce((a, b) => a + b, 0) / daysToClose.length) * 10) / 10

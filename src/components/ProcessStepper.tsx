@@ -55,12 +55,12 @@ export function ProcessStepper({ stage }: { stage: StageId }) {
                   {done ? (
                     <Check className="size-4" strokeWidth={3} />
                   ) : (
-                    <span className="text-[13px] font-semibold">{i + 1}</span>
+                    <span className="text-[17px] font-semibold">{i + 1}</span>
                   )}
                 </motion.div>
                 <span
                   className={cn(
-                    "max-w-[68px] text-center text-[10.5px] leading-tight",
+                    "max-w-[68px] text-center text-[14px] leading-tight",
                     active ? "text-slate-900 font-medium" : "text-slate-500",
                   )}
                 >

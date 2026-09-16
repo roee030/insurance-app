@@ -28,10 +28,10 @@ export function MislakaPanel({
       className="rounded-2xl border border-emerald-500/20 bg-emerald-500/[0.05] p-4"
     >
       <div className="mb-3 flex items-center justify-between">
-        <div className="flex items-center gap-2 text-xs font-semibold text-emerald-700">
+        <div className="flex items-center gap-2 text-base font-semibold text-emerald-700">
           <ShieldCheck className="size-4" /> נתוני מסלקה שהתקבלו
         </div>
-        <span className="text-[11px] text-emerald-600/70">
+        <span className="text-[15px] text-emerald-600/70">
           התקבל {formatDate(data.receivedAt)}
         </span>
       </div>
@@ -50,7 +50,7 @@ export function MislakaPanel({
         {data.polisot.map((p, i) => (
           <div
             key={i}
-            className="rounded-lg bg-slate-100 px-3 py-2 text-xs"
+            className="rounded-lg bg-slate-100 px-3 py-2 text-base"
           >
             <div className="flex items-center justify-between">
               <div className="min-w-0">
@@ -60,7 +60,7 @@ export function MislakaPanel({
                 <span className="text-slate-500"> · {p.product_type}</span>
                 <span
                   className={cn(
-                    "mr-2 rounded px-1 py-0.5 text-[10px]",
+                    "mr-2 rounded px-1 py-0.5 text-[14px]",
                     p.polisa_status === "active"
                       ? "bg-emerald-500/15 text-emerald-700"
                       : "bg-zinc-500/15 text-slate-500",
@@ -74,7 +74,7 @@ export function MislakaPanel({
               </span>
             </div>
             {detailed && (
-              <div className="mt-1.5 flex flex-wrap gap-x-4 gap-y-1 text-[11px] text-slate-500">
+              <div className="mt-1.5 flex flex-wrap gap-x-4 gap-y-1 text-[15px] text-slate-500">
                 {p.track && (
                   <span className="inline-flex items-center gap-1">
                     <TrendingUp className="size-3" /> {p.track}
@@ -94,7 +94,7 @@ export function MislakaPanel({
           </div>
         ))}
         {data.mislakaNumber && (
-          <div className="pt-1 text-[10px] text-slate-400">
+          <div className="pt-1 text-[14px] text-slate-400">
             מס׳ מסלקה: <span dir="ltr">{data.mislakaNumber}</span>
           </div>
         )}
@@ -116,13 +116,13 @@ function Metric({
     <div className="rounded-lg bg-slate-100 px-2.5 py-2 text-center">
       <div
         className={cn(
-          "text-sm font-semibold tabular-nums",
+          "text-lg font-semibold tabular-nums",
           accent ? "text-emerald-700" : "text-slate-800",
         )}
       >
         {value}
       </div>
-      <div className="text-[10px] text-slate-500">{label}</div>
+      <div className="text-[14px] text-slate-500">{label}</div>
     </div>
   );
 }

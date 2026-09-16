@@ -22,11 +22,11 @@ export function KanbanBoard({ onOpen }: { onOpen: (id: string) => void }) {
             <div className="flex items-center justify-between gap-2 px-3 py-2.5">
               <div className="flex items-center gap-2">
                 <span className={cn("size-2 rounded-full", a.dot)} />
-                <span className="text-[13px] font-semibold text-slate-800">
+                <span className="text-[17px] font-semibold text-slate-800">
                   {meta.label}
                 </span>
               </div>
-              <span className="grid min-w-6 place-items-center rounded-full bg-slate-100 px-1.5 text-[11px] font-medium text-slate-500">
+              <span className="grid min-w-6 place-items-center rounded-full bg-slate-100 px-1.5 text-[15px] font-medium text-slate-500">
                 {items.length}
               </span>
             </div>
@@ -51,7 +51,7 @@ export function KanbanBoard({ onOpen }: { onOpen: (id: string) => void }) {
                 ))}
               </AnimatePresence>
               {items.length === 0 && (
-                <div className="grid h-16 place-items-center rounded-xl border border-dashed border-line/70 text-[11px] text-slate-400">
+                <div className="grid h-16 place-items-center rounded-xl border border-dashed border-line/70 text-[15px] text-slate-400">
                   אין לקוחות בשלב זה
                 </div>
               )}
